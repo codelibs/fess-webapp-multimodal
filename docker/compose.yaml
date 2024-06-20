@@ -1,0 +1,20 @@
+services:
+  clip_server:
+    container_name: clip_server
+    image: jinaai/clip-server
+    ports:
+      - "51000:51000"
+    volumes:
+      - ./cache:/home/cas/.cache
+      - ./clip_config.yaml:/home/cas/clip_config.yaml
+    environment:
+      - JINA_HIDE_SURVEY=1
+      - JINA_LOG_LEVEL=DEBUG
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    command: ["/home/cas/clip_config.yaml"]
+
+
