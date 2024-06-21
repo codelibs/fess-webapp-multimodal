@@ -13,7 +13,7 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess.client;
+package org.codelibs.fess.multimodal.client;
 
 import java.awt.Image;
 import java.awt.Rectangle;
@@ -39,7 +39,7 @@ import org.apache.logging.log4j.Logger;
 import org.codelibs.curl.Curl;
 import org.codelibs.curl.CurlException;
 import org.codelibs.curl.CurlResponse;
-import org.codelibs.fess.exception.CasAccessException;
+import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;

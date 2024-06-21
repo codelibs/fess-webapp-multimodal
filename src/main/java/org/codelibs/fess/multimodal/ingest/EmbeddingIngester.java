@@ -13,7 +13,7 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess.ingest;
+package org.codelibs.fess.multimodal.ingest;
 
 import java.util.Map;
 
@@ -23,9 +23,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.core.lang.StringUtil;
 import org.codelibs.fess.Constants;
-import org.codelibs.fess.MultiModalConstants;
+import org.codelibs.fess.ingest.Ingester;
+import org.codelibs.fess.multimodal.MultiModalConstants;
+import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 import org.codelibs.fess.util.ComponentUtil;
-import org.codelibs.fess.util.EmbeddingUtil;
 
 public class EmbeddingIngester extends Ingester {
     private static final Logger logger = LogManager.getLogger(EmbeddingIngester.class);

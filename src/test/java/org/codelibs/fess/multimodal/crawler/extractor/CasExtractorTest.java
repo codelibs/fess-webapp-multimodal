@@ -13,19 +13,19 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess.crawler.extractor;
+package org.codelibs.fess.multimodal.crawler.extractor;
 
 import java.io.InputStream;
 import java.util.logging.Logger;
 
 import org.codelibs.core.io.CloseableUtil;
 import org.codelibs.core.io.ResourceUtil;
-import org.codelibs.fess.MultiModalConstants;
-import org.codelibs.fess.client.CasClient;
 import org.codelibs.fess.crawler.container.StandardCrawlerContainer;
 import org.codelibs.fess.crawler.entity.ExtractData;
 import org.codelibs.fess.crawler.helper.impl.MimeTypeHelperImpl;
-import org.codelibs.fess.util.EmbeddingUtil;
+import org.codelibs.fess.multimodal.MultiModalConstants;
+import org.codelibs.fess.multimodal.client.CasClient;
+import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 import org.dbflute.utflute.core.PlainTestCase;
 
 /**
@@ -41,7 +41,7 @@ public class CasExtractorTest extends PlainTestCase {
     protected void setUp() throws Exception {
         super.setUp();
 
-        StandardCrawlerContainer container = new StandardCrawlerContainer();
+        final StandardCrawlerContainer container = new StandardCrawlerContainer();
         container//
                 .singleton("mimeTypeHelper", MimeTypeHelperImpl.class)//
                 .singleton("casExtractor", CasExtractor.class)//
@@ -63,9 +63,9 @@ public class CasExtractorTest extends PlainTestCase {
         final String content = extractData.getContent();
         CloseableUtil.closeQuietly(in);
         assertEquals(0, content.length());
-        String[] values = extractData.getValues(MultiModalConstants.X_FESS_EMBEDDING);
+        final String[] values = extractData.getValues(MultiModalConstants.X_FESS_EMBEDDING);
         assertEquals(1, values.length);
-        float[] embedding = EmbeddingUtil.decodeFloatArray(values[0]);
+        final float[] embedding = EmbeddingUtil.decodeFloatArray(values[0]);
         assertEquals(5, embedding.length);
     }
 }

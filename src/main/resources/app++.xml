@@ -3,6 +3,6 @@
 	"http://dbflute.org/meta/lastadi10.dtd">
 <components>
 	<component name="casClient"
-		class="org.codelibs.fess.client.CasClient">
+		class="org.codelibs.fess.multimodal.client.CasClient">
 	</component>
 </components>

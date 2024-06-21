@@ -13,36 +13,36 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess.client;
+package org.codelibs.fess.multimodal.client;
 
 import java.io.InputStream;
 import java.util.logging.Logger;
 
 import org.codelibs.core.io.ResourceUtil;
 import org.codelibs.curl.CurlException;
-import org.codelibs.fess.crawler.extractor.CasExtractorTest;
+import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
 import org.dbflute.utflute.core.PlainTestCase;
 
 public class CasClientTest extends PlainTestCase {
     static final Logger logger = Logger.getLogger(CasExtractorTest.class.getName());
 
     public void test_encodeImage() throws Exception {
-        CasClient client = new CasClient();
+        final CasClient client = new CasClient();
         client.init();
         try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            String data = client.encodeImage(in);
+            final String data = client.encodeImage(in);
             assertEquals(70804, data.length());
             // FileUtil.writeBytes("test.png", Base64.getDecoder().decode(data));
         }
     }
 
     public void test_getImageEmbedding() throws Exception {
-        CasClient client = new CasClient();
+        final CasClient client = new CasClient();
         client.init();
         try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            float[] embedding = client.getImageEmbedding(in);
+            final float[] embedding = client.getImageEmbedding(in);
             assertEquals(512, embedding.length);
-        } catch (CurlException e) {
+        } catch (final CurlException e) {
             logger.warning(e.getMessage());
         }
     }

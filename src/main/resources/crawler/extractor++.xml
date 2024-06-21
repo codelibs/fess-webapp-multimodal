@@ -5,7 +5,7 @@
 	<include path="crawler/container.xml" />
 
 	<component name="clipAsServiceExtractor"
-		class="org.codelibs.fess.crawler.extractor.CasExtractor">
+		class="org.codelibs.fess.multimodal.crawler.extractor.CasExtractor">
 		<postConstruct name="addExtractor">
 			<arg>[
 				"image/gif",

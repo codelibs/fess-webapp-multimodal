@@ -13,20 +13,19 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess.util;
+package org.codelibs.fess.multimodal.util;
 
-import org.codelibs.fess.util.EmbeddingUtil;
 import org.dbflute.utflute.core.PlainTestCase;
 
 public class EmbeddingUtilTest extends PlainTestCase {
 
     public void test_encodeFloatArray() {
-        float[] array = new float[] { 1.0f, 2.0f, 3.0f };
+        final float[] array = { 1.0f, 2.0f, 3.0f };
         assertEquals("P4AAAEAAAABAQAAA", EmbeddingUtil.encodeFloatArray(array));
     }
 
     public void test_decodeFloatArray() {
-        float[] array = EmbeddingUtil.decodeFloatArray("P4AAAEAAAABAQAAA");
+        final float[] array = EmbeddingUtil.decodeFloatArray("P4AAAEAAAABAQAAA");
         assertEquals(3, array.length);
         assertEquals(1.0f, array[0]);
         assertEquals(2.0f, array[1]);

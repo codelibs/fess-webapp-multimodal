@@ -13,7 +13,7 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess.util;
+package org.codelibs.fess.multimodal.util;
 
 import java.nio.ByteBuffer;
 import java.util.Base64;

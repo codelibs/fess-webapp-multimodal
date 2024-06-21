@@ -13,12 +13,18 @@
  * either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-package org.codelibs.fess;
+package org.codelibs.fess.multimodal.exception;
 
-public class MultiModalConstants {
-    public static final String X_FESS_EMBEDDING = "X-FESS-Embedding";
+import org.codelibs.fess.crawler.exception.CrawlerSystemException;
 
-    private MultiModalConstants() {
-        // nothing
+public class CasAccessException extends CrawlerSystemException {
+    private static final long serialVersionUID = 1L;
+
+    public CasAccessException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
+
+    public CasAccessException(final String message) {
+        super(message);
     }
 }
