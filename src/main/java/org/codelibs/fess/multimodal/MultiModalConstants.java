@@ -19,15 +19,27 @@ public class MultiModalConstants {
 
     private static final String PREFIX = "fess.multimodal.";
 
+    public static final String CONTENT_DIMENSION = PREFIX + "content.dimension";
+
+    public static final String CONTENT_ENGINE = PREFIX + "content.engine";
+
+    public static final String CONTENT_METHOD = PREFIX + "content.method";
+
+    public static final String CONTENT_SPACE_TYPE = PREFIX + "content.space_type";
+
+    public static final String CONTENT_FIELD = PREFIX + "content.field";
+
     public static final String MIN_SCORE = PREFIX + "min_score";
 
-    public static final String CONTENT_VECTOR_FIELD = System.getProperty(PREFIX + "content.field", "content_vector");
+    public static final String DEFAULT_CONTENT_FIELD = PREFIX + "content_vector";
 
     public static final String X_FESS_EMBEDDING = "X-FESS-Embedding";
 
     public static final String SEARCHER = "multiModalSearcher";
 
     public static final String CAS_CLIENT = "casClient";
+
+    public static final String HELPER = "multiModalSearchHelper";
 
     private MultiModalConstants() {
         // nothing

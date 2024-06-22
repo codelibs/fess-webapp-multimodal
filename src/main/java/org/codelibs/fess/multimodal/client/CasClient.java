@@ -71,8 +71,8 @@ public class CasClient {
     public void init() {
         imageWidth = Integer.getInteger("clip.image.width", 224);
         imageHeight = Integer.getInteger("clip.image.height", 224);
-        maxImageWidth = Integer.getInteger("clip.image.max_width", 1000);
-        maxImageHeight = Integer.getInteger("clip.image.max_height", 1000);
+        maxImageWidth = Integer.getInteger("clip.image.max_width", 3000);
+        maxImageHeight = Integer.getInteger("clip.image.max_height", 2000);
         imageFormat = System.getProperty("clip.image.format", "png");
         clipEndpoint = System.getProperty("clip.server.endpoint", "http://localhost:51000");
 

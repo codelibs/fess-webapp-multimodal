@@ -42,8 +42,8 @@
 				<configuration>
 					<archive>
 						<manifestEntries>
-							<Automatic-Module-Name>
-								org.codelibs.fess.crawler.multimodal</Automatic-Module-Name>
+							<Automatic-Module-Name>org.codelibs.fess.multimodal</Automatic-Module-Name>
+							<Fess-WebAppJar>true</Fess-WebAppJar>
 						</manifestEntries>
 					</archive>
 				</configuration>

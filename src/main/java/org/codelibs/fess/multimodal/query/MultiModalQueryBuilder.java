@@ -16,7 +16,6 @@
 package org.codelibs.fess.multimodal.query;
 
 import static org.codelibs.fess.multimodal.MultiModalConstants.CAS_CLIENT;
-import static org.codelibs.fess.multimodal.MultiModalConstants.CONTENT_VECTOR_FIELD;
 
 import org.codelibs.fess.multimodal.client.CasClient;
 import org.codelibs.fess.multimodal.index.query.KNNQueryBuilder;
@@ -25,7 +24,9 @@ import org.opensearch.index.query.QueryBuilder;
 
 public class MultiModalQueryBuilder {
 
+    protected String field;
     protected String query;
+    protected int k;
     protected Float minScore;
 
     private MultiModalQueryBuilder() {
@@ -34,11 +35,23 @@ public class MultiModalQueryBuilder {
 
     public static class Builder {
 
+        private String field;
         private String query;
+        private int k = 10;
         private Float minScore;
+
+        public Builder field(final String field) {
+            this.field = field;
+            return this;
+        }
 
         public Builder query(final String query) {
             this.query = query;
+            return this;
+        }
+
+        public Builder k(final int k) {
+            this.k = k;
             return this;
         }
 
@@ -49,7 +62,9 @@ public class MultiModalQueryBuilder {
 
         public MultiModalQueryBuilder build() {
             final MultiModalQueryBuilder builder = new MultiModalQueryBuilder();
+            builder.field = field;
             builder.query = query;
+            builder.k = k;
             builder.minScore = minScore;
             return builder;
         }
@@ -58,7 +73,7 @@ public class MultiModalQueryBuilder {
     public QueryBuilder toQueryBuilder() {
         final CasClient client = ComponentUtil.getComponent(CAS_CLIENT);
         final float[] embedding = client.getTextEmbedding(query);
-        return new KNNQueryBuilder.Builder().field(CONTENT_VECTOR_FIELD).vector(embedding).minScore(minScore).build();
+        return new KNNQueryBuilder.Builder().field(field).vector(embedding).minScore(minScore).k(k).build();
     }
 
 }

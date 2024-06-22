@@ -6,7 +6,7 @@
 
 	<component name="clipAsServiceExtractor"
 		class="org.codelibs.fess.multimodal.crawler.extractor.CasExtractor">
-		<postConstruct name="addExtractor">
+		<postConstruct name="register">
 			<arg>[
 				"image/gif",
 				"image/jpeg",

@@ -15,7 +15,7 @@
  */
 package org.codelibs.fess.multimodal.rank.fusion;
 
-import static org.codelibs.fess.multimodal.MultiModalConstants.MIN_SCORE;
+import static org.codelibs.fess.multimodal.MultiModalConstants.HELPER;
 
 import java.util.Locale;
 import java.util.Map;
@@ -24,11 +24,11 @@ import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codelibs.core.lang.StringUtil;
 import org.codelibs.fess.entity.FacetInfo;
 import org.codelibs.fess.entity.GeoInfo;
 import org.codelibs.fess.entity.HighlightInfo;
 import org.codelibs.fess.entity.SearchRequestParams;
+import org.codelibs.fess.multimodal.helper.MultiModalSearchHelper;
 import org.codelibs.fess.mylasta.action.FessUserBean;
 import org.codelibs.fess.rank.fusion.DefaultSearcher;
 import org.codelibs.fess.rank.fusion.SearchResult;
@@ -40,24 +40,10 @@ public class MultiModalSearcher extends DefaultSearcher {
 
     protected ThreadLocal<SearchContext> contextLocal = new ThreadLocal<>();
 
-    protected Float minScore;
-
     @PostConstruct
     public void register() {
         if (logger.isInfoEnabled()) {
             logger.info("Load {}", this.getClass().getSimpleName());
-        }
-
-        final String minScoreValue = System.getProperty(MIN_SCORE);
-        if (StringUtil.isNotBlank(minScoreValue)) {
-            try {
-                minScore = Float.valueOf(minScoreValue);
-            } catch (final NumberFormatException e) {
-                logger.debug("Failed to parse {}.", minScoreValue, e);
-                minScore = null;
-            }
-        } else {
-            minScore = null;
         }
 
         ComponentUtil.getRankFusionProcessor().register(this);
@@ -66,9 +52,8 @@ public class MultiModalSearcher extends DefaultSearcher {
     @Override
     protected SearchResult search(final String query, final SearchRequestParams params, final OptionalThing<FessUserBean> userBean) {
         try {
-            final SearchRequestParams reqParams = new SearchRequestParamsWrapper(params, minScore);
-            createContext(query, reqParams, userBean);
-            return super.search(query, reqParams, userBean);
+            final SearchContext searchContext = createContext(query, params, userBean);
+            return super.search(query, searchContext.getParams(), userBean);
         } finally {
             closeContext();
         }
@@ -79,7 +64,9 @@ public class MultiModalSearcher extends DefaultSearcher {
             logger.warn("The context exists: {}", contextLocal.get());
             contextLocal.remove();
         }
-        final SearchContext context = new SearchContext(query, params, userBean);
+        final MultiModalSearchHelper multiModalSearchHelper = ComponentUtil.getComponent(HELPER);
+        final SearchRequestParams reqParams = new SearchRequestParamsWrapper(params, multiModalSearchHelper.getMinScore());
+        final SearchContext context = new SearchContext(multiModalSearchHelper.getVectorField(), query, reqParams, userBean);
         contextLocal.set(context);
         return context;
     }
@@ -98,14 +85,21 @@ public class MultiModalSearcher extends DefaultSearcher {
 
     public static class SearchContext {
 
+        private final String vectorField;
         private final String query;
         private final SearchRequestParams params;
         private final OptionalThing<FessUserBean> userBean;
 
-        public SearchContext(final String query, final SearchRequestParams params, final OptionalThing<FessUserBean> userBean) {
+        public SearchContext(final String vectorField, final String query, final SearchRequestParams params,
+                final OptionalThing<FessUserBean> userBean) {
+            this.vectorField = vectorField;
             this.query = query;
             this.params = params;
             this.userBean = userBean;
+        }
+
+        public String getVectorField() {
+            return vectorField;
         }
 
         public String getQuery() {

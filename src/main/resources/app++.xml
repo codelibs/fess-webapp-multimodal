@@ -5,4 +5,7 @@
 	<component name="casClient"
 		class="org.codelibs.fess.multimodal.client.CasClient">
 	</component>
+	<component name="multiModalSearchHelper"
+		class="org.codelibs.fess.multimodal.helper.MultiModalSearchHelper">
+	</component>
 </components>

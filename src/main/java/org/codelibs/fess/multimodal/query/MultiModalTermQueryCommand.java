@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.TermQuery;
 import org.codelibs.fess.entity.QueryContext;
+import org.codelibs.fess.entity.SearchRequestParams;
 import org.codelibs.fess.multimodal.rank.fusion.MultiModalSearcher;
 import org.codelibs.fess.multimodal.rank.fusion.MultiModalSearcher.SearchContext;
 import org.codelibs.fess.mylasta.direction.FessConfig;
@@ -42,8 +43,9 @@ public class MultiModalTermQueryCommand extends TermQueryCommand {
             return super.convertDefaultTermQuery(fessConfig, context, termQuery, boost, field, text);
         }
 
-        final QueryBuilder queryBuilder =
-                new MultiModalQueryBuilder.Builder().query(text).minScore(searchContext.getParams().getMinScore()).build().toQueryBuilder();
+        final SearchRequestParams params = searchContext.getParams();
+        final QueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().field(searchContext.getVectorField()).query(text)
+                .k(params.getPageSize()).build().toQueryBuilder();
         context.addFieldLog(field, text);
         context.addHighlightedQuery(text);
         if (logger.isDebugEnabled()) {
