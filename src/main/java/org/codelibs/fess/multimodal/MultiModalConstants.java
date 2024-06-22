@@ -16,7 +16,18 @@
 package org.codelibs.fess.multimodal;
 
 public class MultiModalConstants {
+
+    private static final String PREFIX = "fess.multimodal.";
+
+    public static final String MIN_SCORE = PREFIX + "min_score";
+
+    public static final String CONTENT_VECTOR_FIELD = System.getProperty(PREFIX + "content.field", "content_vector");
+
     public static final String X_FESS_EMBEDDING = "X-FESS-Embedding";
+
+    public static final String SEARCHER = "multiModalSearcher";
+
+    public static final String CAS_CLIENT = "casClient";
 
     private MultiModalConstants() {
         // nothing

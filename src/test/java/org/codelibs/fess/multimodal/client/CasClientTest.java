@@ -46,4 +46,15 @@ public class CasClientTest extends PlainTestCase {
             logger.warning(e.getMessage());
         }
     }
+
+    public void test_getTextEmbedding() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+        try {
+            final float[] embedding = client.getTextEmbedding("running dogs");
+            assertEquals(512, embedding.length);
+        } catch (final CurlException e) {
+            logger.warning(e.getMessage());
+        }
+    }
 }

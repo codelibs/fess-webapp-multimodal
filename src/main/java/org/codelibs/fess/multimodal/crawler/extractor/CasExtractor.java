@@ -15,6 +15,9 @@
  */
 package org.codelibs.fess.multimodal.crawler.extractor;
 
+import static org.codelibs.fess.multimodal.MultiModalConstants.CAS_CLIENT;
+import static org.codelibs.fess.multimodal.MultiModalConstants.X_FESS_EMBEDDING;
+
 import java.io.InputStream;
 import java.util.Map;
 
@@ -24,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.fess.crawler.entity.ExtractData;
 import org.codelibs.fess.crawler.extractor.impl.TikaExtractor;
-import org.codelibs.fess.multimodal.MultiModalConstants;
 import org.codelibs.fess.multimodal.client.CasClient;
 import org.codelibs.fess.multimodal.ingest.EmbeddingIngester;
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
@@ -45,14 +47,14 @@ public class CasExtractor extends TikaExtractor {
     public void init() {
         super.init();
 
-        client = crawlerContainer.getComponent("casClient");
+        client = crawlerContainer.getComponent(CAS_CLIENT);
     }
 
     @Override
     public ExtractData getText(final InputStream inputStream, final Map<String, String> params) {
         return getText(inputStream, params, (data, in) -> {
             try {
-                data.putValue(MultiModalConstants.X_FESS_EMBEDDING, EmbeddingUtil.encodeFloatArray(client.getImageEmbedding(in)));
+                data.putValue(X_FESS_EMBEDDING, EmbeddingUtil.encodeFloatArray(client.getImageEmbedding(in)));
             } catch (final Exception e) {
                 logger.warn("Failed to convert an image to a vector.", e);
             }

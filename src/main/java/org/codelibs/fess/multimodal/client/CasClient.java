@@ -153,4 +153,25 @@ public class CasClient {
             throw new CasAccessException("Failed to read an image.", e);
         }
     }
+
+    public float[] getTextEmbedding(final String query) {
+        final String body = "{\"data\":[{\"text\":\"" + StringEscapeUtils.escapeJson(query) + "\"}],\"execEndpoint\":\"/\"}";
+        logger.debug("request body: {}", body);
+        try (CurlResponse response = Curl.post(clipEndpoint + "/post").header("Content-Type", "application/json").body(body).execute()) {
+            final Map<String, Object> contentMap = response.getContent(PARSER);
+            if (((contentMap.get("data") instanceof final List dataList)
+                    && (!dataList.isEmpty() && dataList.get(0) instanceof final Map data))
+                    && (data.get("embedding") instanceof final List embeddingList)) {
+                logger.debug("embedding: {}", embeddingList);
+                final float[] embedding = new float[embeddingList.size()];
+                for (int i = 0; i < embedding.length; i++) {
+                    embedding[i] = ((Number) embeddingList.get(i)).floatValue();
+                }
+                return embedding;
+            }
+        } catch (final IOException e) {
+            throw new CasAccessException("Clip server failed to generate an embedding.", e);
+        }
+        throw new CasAccessException("Clip server cannot generate an embedding");
+    }
 }
