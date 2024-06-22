@@ -3,7 +3,7 @@
 
 ## Overview
 
-This is a multimodal-search plugin for Fess, enabling the crawling and indexing of various media formats such as text, images, audio, and video.
+This is a multimodal-search plugin for Fess, enabling the crawling and indexing of various media formats such as text, images, audio, and video (support for audio and video will be available in future updates).
 
 ## Download
 
