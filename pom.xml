@@ -83,6 +83,11 @@
 			<version>${curl4j.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>${commons.io.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.codelibs.fess</groupId>
 			<artifactId>fess</artifactId>
 			<version>${fess.version}</version>
