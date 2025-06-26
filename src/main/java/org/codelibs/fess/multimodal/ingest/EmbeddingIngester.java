@@ -21,8 +21,6 @@ import static org.codelibs.fess.multimodal.MultiModalConstants.X_FESS_EMBEDDING;
 
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.fess.ingest.Ingester;
@@ -30,6 +28,8 @@ import org.codelibs.fess.multimodal.MultiModalConstants;
 import org.codelibs.fess.multimodal.helper.MultiModalSearchHelper;
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 import org.codelibs.fess.util.ComponentUtil;
+
+import jakarta.annotation.PostConstruct;
 
 public class EmbeddingIngester extends Ingester {
     private static final Logger logger = LogManager.getLogger(EmbeddingIngester.class);

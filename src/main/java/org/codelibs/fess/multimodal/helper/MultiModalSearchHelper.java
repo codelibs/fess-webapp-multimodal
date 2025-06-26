@@ -23,16 +23,16 @@ import static org.codelibs.fess.multimodal.MultiModalConstants.CONTENT_SPACE_TYP
 import static org.codelibs.fess.multimodal.MultiModalConstants.DEFAULT_CONTENT_FIELD;
 import static org.codelibs.fess.multimodal.MultiModalConstants.MIN_SCORE;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.core.lang.StringUtil;
-import org.codelibs.fess.es.client.SearchEngineClient;
+import org.codelibs.fess.opensearch.client.SearchEngineClient;
 import org.codelibs.fess.query.parser.QueryParser;
 import org.codelibs.fess.util.ComponentUtil;
 
 import com.google.common.base.CharMatcher;
+
+import jakarta.annotation.PostConstruct;
 
 public class MultiModalSearchHelper {
     private static final Logger logger = LogManager.getLogger(MultiModalSearchHelper.class);

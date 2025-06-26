@@ -21,8 +21,6 @@ import static org.codelibs.fess.multimodal.MultiModalConstants.X_FESS_EMBEDDING;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.fess.crawler.entity.ExtractData;
@@ -30,6 +28,8 @@ import org.codelibs.fess.crawler.extractor.impl.TikaExtractor;
 import org.codelibs.fess.multimodal.client.CasClient;
 import org.codelibs.fess.multimodal.ingest.EmbeddingIngester;
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
+
+import jakarta.annotation.PostConstruct;
 
 public class CasExtractor extends TikaExtractor {
 

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
@@ -43,6 +42,8 @@ import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+
+import jakarta.annotation.PostConstruct;
 
 public class CasClient {
     private static final Logger logger = LogManager.getLogger(CasClient.class);

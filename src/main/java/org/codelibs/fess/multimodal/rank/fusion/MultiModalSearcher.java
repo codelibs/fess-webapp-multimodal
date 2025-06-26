@@ -20,8 +20,6 @@ import static org.codelibs.fess.multimodal.MultiModalConstants.HELPER;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.fess.entity.FacetInfo;
@@ -34,6 +32,8 @@ import org.codelibs.fess.rank.fusion.DefaultSearcher;
 import org.codelibs.fess.rank.fusion.SearchResult;
 import org.codelibs.fess.util.ComponentUtil;
 import org.dbflute.optional.OptionalThing;
+
+import jakarta.annotation.PostConstruct;
 
 public class MultiModalSearcher extends DefaultSearcher {
     private static final Logger logger = LogManager.getLogger(MultiModalSearcher.class);
