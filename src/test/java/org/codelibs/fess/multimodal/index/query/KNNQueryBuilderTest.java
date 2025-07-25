@@ -183,7 +183,7 @@ public class KNNQueryBuilderTest extends PlainTestCase {
         final KNNQueryBuilder query2 = new KNNQueryBuilder.Builder().field("field2").vector(TEST_VECTOR).build();
 
         // Hash codes may be different (but not required to be)
-        assertNotEquals(query1.hashCode(), query2.hashCode());
+        assertNotSame(query1.hashCode(), query2.hashCode());
     }
 
     public void test_build_nullVector_allowsNull() {
