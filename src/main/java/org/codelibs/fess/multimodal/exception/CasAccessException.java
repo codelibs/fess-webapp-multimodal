@@ -17,13 +17,29 @@ package org.codelibs.fess.multimodal.exception;
 
 import org.codelibs.fess.crawler.exception.CrawlerSystemException;
 
+/**
+ * Exception thrown when there are issues accessing or communicating with the CAS (CLIP as Service) server.
+ * This exception extends CrawlerSystemException and is used to indicate problems during image processing
+ * or embedding generation operations.
+ */
 public class CasAccessException extends CrawlerSystemException {
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Constructs a new CasAccessException with the specified error message and cause.
+     *
+     * @param message the detail message explaining the reason for the exception
+     * @param cause the underlying cause of this exception
+     */
     public CasAccessException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
+    /**
+     * Constructs a new CasAccessException with the specified error message.
+     *
+     * @param message the detail message explaining the reason for the exception
+     */
     public CasAccessException(final String message) {
         super(message);
     }

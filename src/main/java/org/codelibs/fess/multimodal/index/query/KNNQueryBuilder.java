@@ -28,6 +28,10 @@ import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryShardContext;
 
+/**
+ * Query builder for k-nearest neighbor (KNN) vector similarity searches.
+ * This builder constructs OpenSearch KNN queries for semantic search using vector embeddings.
+ */
 public class KNNQueryBuilder extends AbstractQueryBuilder<KNNQueryBuilder> {
 
     private static final String NAME = "knn";
@@ -41,15 +45,28 @@ public class KNNQueryBuilder extends AbstractQueryBuilder<KNNQueryBuilder> {
 
     private static final int DEFAULT_K = 10;
 
+    /** The name of the vector field to search against. */
     protected String fieldName;
 
+    /** The query vector for similarity search. */
     protected float[] vector;
+    /** The number of nearest neighbors to retrieve. */
     protected int k;
+    /** Optional filter to apply to the search results. */
     protected QueryBuilder filter;
+    /** Whether to ignore unmapped fields in the query. */
     protected boolean ignoreUnmapped;
+    /** Maximum distance threshold for similarity matching. */
     protected Float maxDistance;
+    /** Minimum score threshold for similarity matching. */
     protected Float minScore;
 
+    /**
+     * Constructs a KNNQueryBuilder from a StreamInput for serialization.
+     *
+     * @param in the stream input to read from
+     * @throws IOException if reading from the stream fails
+     */
     public KNNQueryBuilder(final StreamInput in) throws IOException {
         super(in);
         this.fieldName = in.readString();
@@ -64,7 +81,18 @@ public class KNNQueryBuilder extends AbstractQueryBuilder<KNNQueryBuilder> {
     private KNNQueryBuilder() {
     }
 
+    /**
+     * Builder class for constructing KNNQueryBuilder instances with fluent API.
+     */
     public static class Builder {
+
+        /**
+         * Constructs a new Builder instance.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
         private String fieldName;
         private float[] vector;
         private int k = DEFAULT_K;
@@ -73,41 +101,88 @@ public class KNNQueryBuilder extends AbstractQueryBuilder<KNNQueryBuilder> {
         private Float maxDistance = null;
         private Float minScore = null;
 
+        /**
+         * Sets the vector field name to search against.
+         *
+         * @param fieldName the name of the vector field
+         * @return this builder for chaining
+         */
         public Builder field(final String fieldName) {
             this.fieldName = fieldName;
             return this;
         }
 
+        /**
+         * Sets the query vector for similarity search.
+         *
+         * @param vector the query vector
+         * @return this builder for chaining
+         */
         public Builder vector(final float[] vector) {
             this.vector = vector;
             return this;
         }
 
+        /**
+         * Sets the number of nearest neighbors to retrieve.
+         *
+         * @param k the number of neighbors
+         * @return this builder for chaining
+         */
         public Builder k(final int k) {
             this.k = k;
             return this;
         }
 
+        /**
+         * Sets an optional filter to apply to search results.
+         *
+         * @param filter the filter query
+         * @return this builder for chaining
+         */
         public Builder filter(final QueryBuilder filter) {
             this.filter = filter;
             return this;
         }
 
+        /**
+         * Sets whether to ignore unmapped fields.
+         *
+         * @param ignoreUnmapped true to ignore unmapped fields
+         * @return this builder for chaining
+         */
         public Builder ignoreUnmapped(final boolean ignoreUnmapped) {
             this.ignoreUnmapped = ignoreUnmapped;
             return this;
         }
 
+        /**
+         * Sets the maximum distance threshold for matches.
+         *
+         * @param maxDistance the maximum distance
+         * @return this builder for chaining
+         */
         public Builder maxDistance(final Float maxDistance) {
             this.maxDistance = maxDistance;
             return this;
         }
 
+        /**
+         * Sets the minimum score threshold for matches.
+         *
+         * @param minScore the minimum score
+         * @return this builder for chaining
+         */
         public Builder minScore(final Float minScore) {
             this.minScore = minScore;
             return this;
         }
 
+        /**
+         * Builds the KNNQueryBuilder with the configured parameters.
+         *
+         * @return the constructed KNNQueryBuilder
+         */
         public KNNQueryBuilder build() {
             final KNNQueryBuilder query = new KNNQueryBuilder();
             query.fieldName = fieldName;

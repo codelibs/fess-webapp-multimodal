@@ -31,10 +31,22 @@ import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 
 import jakarta.annotation.PostConstruct;
 
+/**
+ * Extractor that extends TikaExtractor to handle image content extraction with embedding generation.
+ * This extractor processes images during crawling and generates vector embeddings using the CAS client.
+ */
 public class CasExtractor extends TikaExtractor {
 
     private static final Logger logger = LogManager.getLogger(EmbeddingIngester.class);
 
+    /**
+     * Constructs a new CasExtractor instance.
+     */
+    public CasExtractor() {
+        // Default constructor
+    }
+
+    /** CAS client for generating image embeddings. */
     protected CasClient client;
 
     @Override
@@ -43,6 +55,9 @@ public class CasExtractor extends TikaExtractor {
     }
 
     @Override
+    /**
+     * Initializes the extractor by calling parent initialization and setting up the CAS client.
+     */
     @PostConstruct
     public void init() {
         super.init();

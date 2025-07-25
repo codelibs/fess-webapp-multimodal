@@ -18,12 +18,23 @@ package org.codelibs.fess.multimodal.util;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 
+/**
+ * Utility class for encoding and decoding embedding vectors.
+ * Provides methods to convert between float arrays and base64-encoded strings
+ * for storage and transmission of embedding data.
+ */
 public class EmbeddingUtil {
 
     private EmbeddingUtil() {
         // nothing
     }
 
+    /**
+     * Encodes a float array into a base64-encoded string.
+     *
+     * @param floatArray the float array to encode
+     * @return base64-encoded string representation of the float array
+     */
     public static String encodeFloatArray(final float[] floatArray) {
         final ByteBuffer byteBuffer = ByteBuffer.allocate(floatArray.length * 4);
         for (final float value : floatArray) {
@@ -32,6 +43,12 @@ public class EmbeddingUtil {
         return Base64.getEncoder().encodeToString(byteBuffer.array());
     }
 
+    /**
+     * Decodes a base64-encoded string back into a float array.
+     *
+     * @param encodedString the base64-encoded string to decode
+     * @return float array decoded from the string
+     */
     public static float[] decodeFloatArray(final String encodedString) {
         final byte[] bytes = Base64.getDecoder().decode(encodedString);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);

@@ -45,9 +45,21 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 
 import jakarta.annotation.PostConstruct;
 
+/**
+ * Client for communicating with CAS (CLIP as Service) server to generate embeddings for images and text.
+ * This client handles image preprocessing, encoding, and API communication with the CLIP server.
+ */
 public class CasClient {
     private static final Logger logger = LogManager.getLogger(CasClient.class);
 
+    /**
+     * Constructs a new CasClient instance.
+     */
+    public CasClient() {
+        // Default constructor
+    }
+
+    /** Response parser function to convert JSON responses from the CLIP server into Map objects. */
     protected static final Function<CurlResponse, Map<String, Object>> PARSER = response -> {
         try (InputStream is = response.getContentAsStream()) {
             return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, is).map();
@@ -56,18 +68,28 @@ public class CasClient {
         }
     };
 
+    /** Target width for resized images sent to CLIP server. */
     protected int imageWidth;
 
+    /** Target height for resized images sent to CLIP server. */
     protected int imageHeight;
 
+    /** Maximum allowed width for input images before rejection. */
     protected int maxImageWidth;
 
+    /** Maximum allowed height for input images before rejection. */
     protected int maxImageHeight;
 
+    /** Format for encoding images (e.g., png, jpg). */
     protected String imageFormat;
 
+    /** CLIP server endpoint URL. */
     protected String clipEndpoint;
 
+    /**
+     * Initializes the CAS client with configuration parameters from system properties.
+     * Sets up image dimensions, format, and CLIP server endpoint.
+     */
     @PostConstruct
     public void init() {
         imageWidth = Integer.getInteger("clip.image.width", 224);
@@ -81,10 +103,24 @@ public class CasClient {
                 imageFormat, clipEndpoint);
     }
 
+    /**
+     * Generates an embedding vector for the given image.
+     *
+     * @param in input stream containing the image data
+     * @return float array representing the image embedding
+     * @throws CasAccessException if the embedding generation fails
+     */
     public float[] getImageEmbedding(final InputStream in) {
         return sendImage(encodeImage(in));
     }
 
+    /**
+     * Sends a base64-encoded image to the CLIP server and retrieves the embedding.
+     *
+     * @param encodedImage base64-encoded image data
+     * @return float array representing the image embedding
+     * @throws CasAccessException if the server communication fails
+     */
     protected float[] sendImage(final String encodedImage) {
         final String body = "{\"data\":[{\"blob\":\"" + StringEscapeUtils.escapeJson(encodedImage) + "\"}],\"execEndpoint\":\"/\"}";
         logger.debug("request body: {}", body);
@@ -106,6 +142,14 @@ public class CasClient {
         throw new CasAccessException("Clip server cannot generate an embedding");
     }
 
+    /**
+     * Encodes an image from input stream to base64 format, with resizing and preprocessing.
+     * Images are resized to the target dimensions while maintaining aspect ratio.
+     *
+     * @param in input stream containing the image data
+     * @return base64-encoded image string
+     * @throws CasAccessException if image processing fails
+     */
     protected String encodeImage(final InputStream in) {
         try (ImageInputStream input = ImageIO.createImageInputStream(in)) {
             final Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
@@ -155,6 +199,13 @@ public class CasClient {
         }
     }
 
+    /**
+     * Generates an embedding vector for the given text query.
+     *
+     * @param query text string to generate embedding for
+     * @return float array representing the text embedding
+     * @throws CasAccessException if the embedding generation fails
+     */
     public float[] getTextEmbedding(final String query) {
         final String body = "{\"data\":[{\"text\":\"" + StringEscapeUtils.escapeJson(query) + "\"}],\"execEndpoint\":\"/\"}";
         logger.debug("request body: {}", body);

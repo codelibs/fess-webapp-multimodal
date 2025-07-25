@@ -30,9 +30,20 @@ import org.codelibs.fess.query.TermQueryCommand;
 import org.codelibs.fess.util.ComponentUtil;
 import org.opensearch.index.query.QueryBuilder;
 
+/**
+ * Query command that extends TermQueryCommand to handle multimodal term queries.
+ * Converts term queries into vector similarity searches when appropriate.
+ */
 public class MultiModalTermQueryCommand extends TermQueryCommand {
 
     private static final Logger logger = LogManager.getLogger(MultiModalTermQueryCommand.class);
+
+    /**
+     * Constructs a new MultiModalTermQueryCommand instance.
+     */
+    public MultiModalTermQueryCommand() {
+        // Default constructor
+    }
 
     @Override
     protected QueryBuilder convertDefaultTermQuery(final FessConfig fessConfig, final QueryContext context, final TermQuery termQuery,
@@ -54,6 +65,11 @@ public class MultiModalTermQueryCommand extends TermQueryCommand {
         return queryBuilder;
     }
 
+    /**
+     * Retrieves the current search context from the multimodal searcher.
+     *
+     * @return the search context, or null if not available
+     */
     protected SearchContext getSearchContext() {
         final MultiModalSearcher searcher = ComponentUtil.getComponent(SEARCHER);
         return searcher.getContext();
