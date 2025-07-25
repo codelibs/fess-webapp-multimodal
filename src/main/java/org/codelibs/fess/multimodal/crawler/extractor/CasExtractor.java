@@ -55,10 +55,10 @@ public class CasExtractor extends TikaExtractor {
     }
 
     @Override
-    @PostConstruct
     /**
      * Initializes the extractor by calling parent initialization and setting up the CAS client.
      */
+    @PostConstruct
     public void init() {
         super.init();
 
