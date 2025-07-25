@@ -30,9 +30,20 @@ import org.codelibs.fess.query.PhraseQueryCommand;
 import org.codelibs.fess.util.ComponentUtil;
 import org.opensearch.index.query.QueryBuilder;
 
+/**
+ * Query command that extends PhraseQueryCommand to handle multimodal phrase queries.
+ * Converts phrase queries into vector similarity searches when appropriate.
+ */
 public class MultiModalPhraseQueryCommand extends PhraseQueryCommand {
 
     private static final Logger logger = LogManager.getLogger(MultiModalPhraseQueryCommand.class);
+
+    /**
+     * Constructs a new MultiModalPhraseQueryCommand instance.
+     */
+    public MultiModalPhraseQueryCommand() {
+        // Default constructor
+    }
 
     @Override
     protected QueryBuilder convertPhraseQuery(final FessConfig fessConfig, final QueryContext context, final PhraseQuery phraseQuery,
@@ -55,6 +66,11 @@ public class MultiModalPhraseQueryCommand extends PhraseQueryCommand {
         return queryBuilder;
     }
 
+    /**
+     * Retrieves the current search context from the multimodal searcher.
+     *
+     * @return the search context, or null if not available
+     */
     protected SearchContext getSearchContext() {
         final MultiModalSearcher searcher = ComponentUtil.getComponent(SEARCHER);
         return searcher.getContext();

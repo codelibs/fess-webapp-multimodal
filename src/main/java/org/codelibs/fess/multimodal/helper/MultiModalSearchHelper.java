@@ -34,13 +34,29 @@ import com.google.common.base.CharMatcher;
 
 import jakarta.annotation.PostConstruct;
 
+/**
+ * Helper class for configuring and managing multimodal search functionality.
+ * Handles vector field configuration, query rewriting, and OpenSearch mapping setup.
+ */
 public class MultiModalSearchHelper {
     private static final Logger logger = LogManager.getLogger(MultiModalSearchHelper.class);
 
+    /**
+     * Constructs a new MultiModalSearchHelper instance.
+     */
+    public MultiModalSearchHelper() {
+        // Default constructor
+    }
+
+    /** Minimum score threshold for search results. */
     protected Float minScore;
 
     private String vectorField;
 
+    /**
+     * Initializes the multimodal search helper by configuring OpenSearch mappings,
+     * setting up query filters, and loading configuration parameters.
+     */
     @PostConstruct
     public void init() {
         final SearchEngineClient client = ComponentUtil.getSearchEngineClient();
@@ -79,6 +95,11 @@ public class MultiModalSearchHelper {
         ComponentUtil.getSystemHelper().addUpdateConfigListener("MultiModalSearch", this::load);
     }
 
+    /**
+     * Loads configuration parameters from system properties.
+     *
+     * @return summary string of loaded configuration
+     */
     protected String load() {
         final StringBuilder buf = new StringBuilder();
 
@@ -103,6 +124,13 @@ public class MultiModalSearchHelper {
         return buf.toString();
     }
 
+    /**
+     * Rewrites queries to handle phrase queries for multimodal search.
+     * Wraps simple queries in quotes if they don't contain field specifications.
+     *
+     * @param query the original query string
+     * @return the rewritten query string
+     */
     protected String rewriteQuery(final String query) {
         if (StringUtil.isBlank(query) || (query.indexOf('"') != -1) || !CharMatcher.whitespace().matchesAnyOf(query)) {
             return query;
@@ -117,10 +145,20 @@ public class MultiModalSearchHelper {
         return "\"" + query + "\"";
     }
 
+    /**
+     * Gets the configured minimum score threshold.
+     *
+     * @return the minimum score, or null if not configured
+     */
     public Float getMinScore() {
         return minScore;
     }
 
+    /**
+     * Gets the configured vector field name.
+     *
+     * @return the vector field name
+     */
     public String getVectorField() {
         return vectorField;
     }

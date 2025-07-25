@@ -31,11 +31,27 @@ import org.codelibs.fess.util.ComponentUtil;
 
 import jakarta.annotation.PostConstruct;
 
+/**
+ * Ingester that processes embedding data during document indexing.
+ * Converts encoded embedding strings to float arrays for vector search operations.
+ */
 public class EmbeddingIngester extends Ingester {
     private static final Logger logger = LogManager.getLogger(EmbeddingIngester.class);
 
+    /**
+     * Constructs a new EmbeddingIngester instance.
+     */
+    public EmbeddingIngester() {
+        // Default constructor
+    }
+
+    /** The name of the vector field where embeddings are stored. */
     protected String vectorField;
 
+    /**
+     * Initializes the ingester by setting up the vector field configuration
+     * and registering metadata mappings for embedding data.
+     */
     @PostConstruct
     public void init() {
         final MultiModalSearchHelper helper = ComponentUtil.getComponent(MultiModalConstants.HELPER);

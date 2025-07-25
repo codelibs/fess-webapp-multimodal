@@ -22,44 +22,91 @@ import org.codelibs.fess.multimodal.index.query.KNNQueryBuilder;
 import org.codelibs.fess.util.ComponentUtil;
 import org.opensearch.index.query.QueryBuilder;
 
+/**
+ * Builder for constructing multimodal search queries that combine text and vector search.
+ * Converts text queries into vector embeddings and builds KNN queries for semantic search.
+ */
 public class MultiModalQueryBuilder {
 
+    /** The vector field to search against. */
     protected String field;
+    /** The text query to convert to embeddings. */
     protected String query;
+    /** The number of nearest neighbors to retrieve. */
     protected int k;
+    /** The minimum score threshold for matches. */
     protected Float minScore;
 
     private MultiModalQueryBuilder() {
         // nothing
     }
 
+    /**
+     * Builder class for constructing MultiModalQueryBuilder instances.
+     */
     public static class Builder {
+
+        /**
+         * Constructs a new Builder instance.
+         */
+        public Builder() {
+            // Default constructor
+        }
 
         private String field;
         private String query;
         private int k = 10;
         private Float minScore;
 
+        /**
+         * Sets the vector field to search against.
+         *
+         * @param field the vector field name
+         * @return this builder for chaining
+         */
         public Builder field(final String field) {
             this.field = field;
             return this;
         }
 
+        /**
+         * Sets the text query to convert to embeddings.
+         *
+         * @param query the text query
+         * @return this builder for chaining
+         */
         public Builder query(final String query) {
             this.query = query;
             return this;
         }
 
+        /**
+         * Sets the number of nearest neighbors to retrieve.
+         *
+         * @param k the number of neighbors
+         * @return this builder for chaining
+         */
         public Builder k(final int k) {
             this.k = k;
             return this;
         }
 
+        /**
+         * Sets the minimum score threshold for matches.
+         *
+         * @param minScore the minimum score
+         * @return this builder for chaining
+         */
         public Builder minScore(final Float minScore) {
             this.minScore = minScore;
             return this;
         }
 
+        /**
+         * Builds the MultiModalQueryBuilder with configured parameters.
+         *
+         * @return the constructed MultiModalQueryBuilder
+         */
         public MultiModalQueryBuilder build() {
             final MultiModalQueryBuilder builder = new MultiModalQueryBuilder();
             builder.field = field;
@@ -70,6 +117,12 @@ public class MultiModalQueryBuilder {
         }
     }
 
+    /**
+     * Converts this multimodal query to an OpenSearch QueryBuilder.
+     * Generates text embeddings using the CAS client and creates a KNN query.
+     *
+     * @return the QueryBuilder for execution
+     */
     public QueryBuilder toQueryBuilder() {
         final CasClient client = ComponentUtil.getComponent(CAS_CLIENT);
         final float[] embedding = client.getTextEmbedding(query);

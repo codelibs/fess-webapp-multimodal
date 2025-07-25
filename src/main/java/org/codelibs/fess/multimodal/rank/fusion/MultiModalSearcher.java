@@ -35,11 +35,26 @@ import org.dbflute.optional.OptionalThing;
 
 import jakarta.annotation.PostConstruct;
 
+/**
+ * Searcher that extends DefaultSearcher to provide multimodal search capabilities.
+ * Manages search context for rank fusion between text and vector search results.
+ */
 public class MultiModalSearcher extends DefaultSearcher {
     private static final Logger logger = LogManager.getLogger(MultiModalSearcher.class);
 
+    /**
+     * Constructs a new MultiModalSearcher instance.
+     */
+    public MultiModalSearcher() {
+        // Default constructor
+    }
+
+    /** Thread-local storage for search context. */
     protected ThreadLocal<SearchContext> contextLocal = new ThreadLocal<>();
 
+    /**
+     * Registers this searcher with the rank fusion processor during initialization.
+     */
     @PostConstruct
     public void register() {
         if (logger.isInfoEnabled()) {
@@ -59,6 +74,14 @@ public class MultiModalSearcher extends DefaultSearcher {
         }
     }
 
+    /**
+     * Creates a new search context for multimodal search operations.
+     *
+     * @param query the search query
+     * @param params the search request parameters
+     * @param userBean the user information
+     * @return the created search context
+     */
     public SearchContext createContext(final String query, final SearchRequestParams params, final OptionalThing<FessUserBean> userBean) {
         if (contextLocal.get() != null) {
             logger.warn("The context exists: {}", contextLocal.get());
@@ -71,6 +94,9 @@ public class MultiModalSearcher extends DefaultSearcher {
         return context;
     }
 
+    /**
+     * Closes and cleans up the current search context.
+     */
     public void closeContext() {
         if (contextLocal.get() == null) {
             logger.warn("The context does not exist.");
@@ -79,10 +105,18 @@ public class MultiModalSearcher extends DefaultSearcher {
         }
     }
 
+    /**
+     * Retrieves the current search context.
+     *
+     * @return the current search context, or null if none exists
+     */
     public SearchContext getContext() {
         return contextLocal.get();
     }
 
+    /**
+     * Context object that holds information needed for multimodal search operations.
+     */
     public static class SearchContext {
 
         private final String vectorField;
@@ -90,6 +124,14 @@ public class MultiModalSearcher extends DefaultSearcher {
         private final SearchRequestParams params;
         private final OptionalThing<FessUserBean> userBean;
 
+        /**
+         * Constructs a new search context.
+         *
+         * @param vectorField the vector field name
+         * @param query the search query
+         * @param params the search parameters
+         * @param userBean the user information
+         */
         public SearchContext(final String vectorField, final String query, final SearchRequestParams params,
                 final OptionalThing<FessUserBean> userBean) {
             this.vectorField = vectorField;
@@ -98,18 +140,38 @@ public class MultiModalSearcher extends DefaultSearcher {
             this.userBean = userBean;
         }
 
+        /**
+         * Gets the vector field name.
+         *
+         * @return the vector field name
+         */
         public String getVectorField() {
             return vectorField;
         }
 
+        /**
+         * Gets the search query.
+         *
+         * @return the search query
+         */
         public String getQuery() {
             return query;
         }
 
+        /**
+         * Gets the search request parameters.
+         *
+         * @return the search parameters
+         */
         public SearchRequestParams getParams() {
             return params;
         }
 
+        /**
+         * Gets the user information.
+         *
+         * @return the user bean
+         */
         public OptionalThing<FessUserBean> getUserBean() {
             return userBean;
         }
@@ -121,10 +183,19 @@ public class MultiModalSearcher extends DefaultSearcher {
 
     }
 
+    /**
+     * Wrapper for SearchRequestParams that overrides the minimum score configuration.
+     */
     protected static class SearchRequestParamsWrapper extends SearchRequestParams {
         private final SearchRequestParams parent;
         private final Float minScore;
 
+        /**
+         * Constructs a wrapper with custom minimum score.
+         *
+         * @param params the original search parameters
+         * @param minScore the minimum score threshold
+         */
         protected SearchRequestParamsWrapper(final SearchRequestParams params, final Float minScore) {
             this.parent = params;
             this.minScore = minScore;
