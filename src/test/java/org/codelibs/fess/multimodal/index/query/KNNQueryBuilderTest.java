@@ -49,8 +49,14 @@ public class KNNQueryBuilderTest extends PlainTestCase {
     public void test_builder_fluentAPI_chainsCorrectly() {
         final BoolQueryBuilder testFilter = QueryBuilders.boolQuery();
 
-        final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR).k(TEST_K).filter(testFilter)
-                .ignoreUnmapped(true).maxDistance(0.8f).minScore(0.5f).build();
+        final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD)
+                .vector(TEST_VECTOR)
+                .k(TEST_K)
+                .filter(testFilter)
+                .ignoreUnmapped(true)
+                .maxDistance(0.8f)
+                .minScore(0.5f)
+                .build();
 
         assertEquals(TEST_FIELD, query.fieldName);
         assertSame(TEST_VECTOR, query.vector);

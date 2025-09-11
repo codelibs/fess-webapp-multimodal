@@ -55,8 +55,11 @@ public class MultiModalTermQueryCommand extends TermQueryCommand {
         }
 
         final SearchRequestParams params = searchContext.getParams();
-        final QueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().field(searchContext.getVectorField()).query(text)
-                .k(params.getPageSize()).build().toQueryBuilder();
+        final QueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().field(searchContext.getVectorField())
+                .query(text)
+                .k(params.getPageSize())
+                .build()
+                .toQueryBuilder();
         context.addFieldLog(field, text);
         context.addHighlightedQuery(text);
         if (logger.isDebugEnabled()) {
