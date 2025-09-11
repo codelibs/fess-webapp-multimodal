@@ -182,8 +182,9 @@ public class CasClient {
                     final BufferedImage clipImage = new BufferedImage(imageWidth, imageHeight, image.getType());
                     final int x = (imageWidth - newWidth) / 2;
                     final int y = (imageHeight - newHeight) / 2;
-                    clipImage.getGraphics().drawImage(image.getScaledInstance(newWidth, newHeight, Image.SCALE_AREA_AVERAGING), x, y,
-                            newWidth, newHeight, null);
+                    clipImage.getGraphics()
+                            .drawImage(image.getScaledInstance(newWidth, newHeight, Image.SCALE_AREA_AVERAGING), x, y, newWidth, newHeight,
+                                    null);
                     ImageIO.write(clipImage, imageFormat, out);
                     image.flush();
                     return Base64.getEncoder().encodeToString(out.toByteArray());

@@ -259,7 +259,13 @@ public class KNNQueryBuilder extends AbstractQueryBuilder<KNNQueryBuilder> {
 
     @Override
     protected int doHashCode() {
-        return new HashCodeBuilder().append(fieldName).append(vector).append(k).append(filter).append(ignoreUnmapped).append(maxDistance)
-                .append(minScore).toHashCode();
+        return new HashCodeBuilder().append(fieldName)
+                .append(vector)
+                .append(k)
+                .append(filter)
+                .append(ignoreUnmapped)
+                .append(maxDistance)
+                .append(minScore)
+                .toHashCode();
     }
 }
