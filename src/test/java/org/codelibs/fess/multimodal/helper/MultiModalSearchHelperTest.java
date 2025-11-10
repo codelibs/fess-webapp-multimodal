@@ -120,4 +120,94 @@ public class MultiModalSearchHelperTest extends PlainTestCase {
 
         assertEquals("my_vector_field", helper.getVectorField());
     }
+
+    public void test_rewriteQuery_nullQuery_returnsNull() {
+        helper.load();
+        final String result = helper.rewriteQuery(null);
+        assertNull(result);
+    }
+
+    public void test_rewriteQuery_emptyQuery_returnsEmpty() {
+        helper.load();
+        final String result = helper.rewriteQuery("");
+        assertEquals("", result);
+    }
+
+    public void test_rewriteQuery_blankQuery_returnsBlank() {
+        helper.load();
+        final String result = helper.rewriteQuery("   ");
+        assertEquals("   ", result);
+    }
+
+    public void test_rewriteQuery_singleWord_returnsUnchanged() {
+        helper.load();
+        final String result = helper.rewriteQuery("test");
+        assertEquals("test", result);
+    }
+
+    public void test_rewriteQuery_queryWithQuotes_returnsUnchanged() {
+        helper.load();
+        final String result = helper.rewriteQuery("\"test query\"");
+        assertEquals("\"test query\"", result);
+    }
+
+    public void test_rewriteQuery_queryWithoutSpaces_returnsUnchanged() {
+        helper.load();
+        final String result = helper.rewriteQuery("testquery");
+        assertEquals("testquery", result);
+    }
+
+    public void test_load_trimsVectorField() {
+        System.setProperty(CONTENT_FIELD, "  custom_vector  ");
+        helper.load();
+
+        assertEquals("custom_vector", helper.getVectorField());
+    }
+
+    public void test_load_multipleInvocations_updatesValues() {
+        System.setProperty(CONTENT_FIELD, "field1");
+        System.setProperty(MIN_SCORE, "0.5");
+        helper.load();
+
+        assertEquals("field1", helper.getVectorField());
+        assertEquals(Float.valueOf(0.5f), helper.getMinScore());
+
+        System.setProperty(CONTENT_FIELD, "field2");
+        System.setProperty(MIN_SCORE, "0.9");
+        helper.load();
+
+        assertEquals("field2", helper.getVectorField());
+        assertEquals(Float.valueOf(0.9f), helper.getMinScore());
+    }
+
+    public void test_load_zeroMinScore_setsZero() {
+        System.setProperty(MIN_SCORE, "0.0");
+        helper.load();
+
+        assertEquals(Float.valueOf(0.0f), helper.getMinScore());
+    }
+
+    public void test_load_negativeMinScore_setsNegative() {
+        System.setProperty(MIN_SCORE, "-0.5");
+        helper.load();
+
+        assertEquals(Float.valueOf(-0.5f), helper.getMinScore());
+    }
+
+    public void test_load_veryLargeMinScore_setsLarge() {
+        System.setProperty(MIN_SCORE, "999999.99");
+        helper.load();
+
+        assertEquals(Float.valueOf(999999.99f), helper.getMinScore());
+    }
+
+    public void test_getMinScore_withoutLoad_returnsNull() {
+        final MultiModalSearchHelper newHelper = new MultiModalSearchHelper();
+        assertNull(newHelper.getMinScore());
+    }
+
+    public void test_getVectorField_withoutLoad_returnsNull() {
+        final MultiModalSearchHelper newHelper = new MultiModalSearchHelper();
+        assertNull(newHelper.getVectorField());
+    }
 }
