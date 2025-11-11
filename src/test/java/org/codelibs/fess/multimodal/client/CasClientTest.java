@@ -113,7 +113,7 @@ public class CasClientTest extends PlainTestCase {
         }
     }
 
-    public void test_encodeImage_emptyInputStream_throwsException() {
+    public void test_encodeImage_emptyInputStream_throwsException() throws Exception {
         final CasClient client = new CasClient();
         client.init();
 
@@ -126,7 +126,7 @@ public class CasClientTest extends PlainTestCase {
         }
     }
 
-    public void test_encodeImage_invalidImageData_throwsException() {
+    public void test_encodeImage_invalidImageData_throwsException() throws Exception {
         final CasClient client = new CasClient();
         client.init();
 
@@ -139,7 +139,7 @@ public class CasClientTest extends PlainTestCase {
         }
     }
 
-    public void test_encodeImage_imageTooLarge_throwsException() {
+    public void test_encodeImage_imageTooLarge_throwsException() throws Exception {
         final CasClient client = new CasClient();
         client.init();
         client.maxImageWidth = 100;
