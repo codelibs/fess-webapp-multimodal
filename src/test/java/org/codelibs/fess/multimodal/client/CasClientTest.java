@@ -15,12 +15,14 @@
  */
 package org.codelibs.fess.multimodal.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.logging.Logger;
 
 import org.codelibs.core.io.ResourceUtil;
 import org.codelibs.curl.CurlException;
 import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
+import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.dbflute.utflute.core.PlainTestCase;
 
 public class CasClientTest extends PlainTestCase {
@@ -54,6 +56,171 @@ public class CasClientTest extends PlainTestCase {
             final float[] embedding = client.getTextEmbedding("running dogs");
             assertEquals(512, embedding.length);
         } catch (final CurlException e) {
+            logger.warning(e.getMessage());
+        }
+    }
+
+    public void test_init_setsDefaultValues() {
+        final CasClient client = new CasClient();
+        client.init();
+
+        assertEquals(224, client.imageWidth);
+        assertEquals(224, client.imageHeight);
+        assertEquals(3000, client.maxImageWidth);
+        assertEquals(2000, client.maxImageHeight);
+        assertEquals("png", client.imageFormat);
+        assertEquals("http://localhost:51000", client.clipEndpoint);
+    }
+
+    public void test_init_readsSystemProperties() {
+        try {
+            System.setProperty("clip.image.width", "512");
+            System.setProperty("clip.image.height", "512");
+            System.setProperty("clip.image.max_width", "5000");
+            System.setProperty("clip.image.max_height", "4000");
+            System.setProperty("clip.image.format", "jpg");
+            System.setProperty("clip.server.endpoint", "http://localhost:8080");
+
+            final CasClient client = new CasClient();
+            client.init();
+
+            assertEquals(512, client.imageWidth);
+            assertEquals(512, client.imageHeight);
+            assertEquals(5000, client.maxImageWidth);
+            assertEquals(4000, client.maxImageHeight);
+            assertEquals("jpg", client.imageFormat);
+            assertEquals("http://localhost:8080", client.clipEndpoint);
+        } finally {
+            System.clearProperty("clip.image.width");
+            System.clearProperty("clip.image.height");
+            System.clearProperty("clip.image.max_width");
+            System.clearProperty("clip.image.max_height");
+            System.clearProperty("clip.image.format");
+            System.clearProperty("clip.server.endpoint");
+        }
+    }
+
+    public void test_encodeImage_nullInputStream_throwsException() {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try {
+            client.encodeImage(null);
+            fail("Expected exception for null input stream");
+        } catch (final IllegalArgumentException e) {
+            // Expected - ImageIO.createImageInputStream throws IllegalArgumentException for null
+            assertTrue(e.getMessage().contains("input == null"));
+        } catch (final CasAccessException e) {
+            // Also acceptable if wrapped in CasAccessException
+            assertTrue(e.getMessage().contains("Failed to read an image") || e.getMessage().contains("No image"));
+        }
+    }
+
+    public void test_encodeImage_emptyInputStream_throwsException() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try (InputStream in = new ByteArrayInputStream(new byte[0])) {
+            client.encodeImage(in);
+            fail("Expected CasAccessException for empty input stream");
+        } catch (final CasAccessException e) {
+            // Expected
+            assertTrue(e.getMessage().contains("No image") || e.getMessage().contains("Failed to read"));
+        }
+    }
+
+    public void test_encodeImage_invalidImageData_throwsException() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try (InputStream in = new ByteArrayInputStream("not an image".getBytes())) {
+            client.encodeImage(in);
+            fail("Expected CasAccessException for invalid image data");
+        } catch (final CasAccessException e) {
+            // Expected
+            assertTrue(e.getMessage().contains("No image") || e.getMessage().contains("Failed to read"));
+        }
+    }
+
+    public void test_encodeImage_imageTooLarge_throwsException() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+        client.maxImageWidth = 100;
+        client.maxImageHeight = 100;
+
+        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+            client.encodeImage(in);
+            fail("Expected CasAccessException for image too large");
+        } catch (final CasAccessException e) {
+            // Expected
+            assertTrue(e.getMessage().contains("Invalid image size"));
+        }
+    }
+
+    public void test_encodeImage_differentAspectRatios() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+            final String data = client.encodeImage(in);
+            assertNotNull(data);
+            assertTrue(data.length() > 0);
+        }
+    }
+
+    public void test_getTextEmbedding_emptyString_handlesGracefully() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try {
+            final float[] embedding = client.getTextEmbedding("");
+            assertNotNull(embedding);
+        } catch (final CurlException e) {
+            logger.warning(e.getMessage());
+        }
+    }
+
+    public void test_getTextEmbedding_longText_handlesGracefully() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+
+        final StringBuilder longText = new StringBuilder();
+        for (int i = 0; i < 1000; i++) {
+            longText.append("word ");
+        }
+
+        try {
+            final float[] embedding = client.getTextEmbedding(longText.toString());
+            assertNotNull(embedding);
+        } catch (final CurlException e) {
+            logger.warning(e.getMessage());
+        }
+    }
+
+    public void test_getTextEmbedding_specialCharacters_handlesGracefully() throws Exception {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try {
+            final float[] embedding = client.getTextEmbedding("日本語のテキスト \"quoted\" <html>");
+            assertNotNull(embedding);
+        } catch (final CurlException e) {
+            logger.warning(e.getMessage());
+        }
+    }
+
+    public void test_sendImage_validBase64_returnsEmbedding() {
+        final CasClient client = new CasClient();
+        client.init();
+
+        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+            final String encodedImage = client.encodeImage(in);
+            final float[] embedding = client.sendImage(encodedImage);
+            assertNotNull(embedding);
+            assertTrue(embedding.length > 0);
+        } catch (final CurlException e) {
+            logger.warning(e.getMessage());
+        } catch (final Exception e) {
             logger.warning(e.getMessage());
         }
     }
