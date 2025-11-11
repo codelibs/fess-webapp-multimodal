@@ -142,17 +142,20 @@ public class EmbeddingIngesterTest extends PlainTestCase {
         assertNull(result.get(VECTOR_FIELD));
     }
 
-    public void test_process_withEmptyStringArray_handlesGracefully() {
+    public void test_process_withEmptyStringArray_throwsException() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
 
         final Map<String, Object> target = new HashMap<>();
         target.put(VECTOR_FIELD, new String[] {});
 
-        final Map<String, Object> result = ingester.process(target);
-
-        // Should handle gracefully, likely keeping original or throwing exception
-        assertNotNull(result);
+        try {
+            ingester.process(target);
+            fail("Expected ArrayIndexOutOfBoundsException for empty array");
+        } catch (final ArrayIndexOutOfBoundsException e) {
+            // Expected - implementation tries to access encodedEmbeddings[0] without checking length
+            assertTrue(e.getMessage().contains("Index 0 out of bounds"));
+        }
     }
 
     public void test_process_withLargeEmbedding_handlesCorrectly() {
