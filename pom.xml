@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>fess-webapp-multimodal</artifactId>
-	<version>15.4.0</version>
+	<version>15.4.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>fess-webapp-multimodal</name>
 	<scm>
@@ -10,7 +10,7 @@
 		<developerConnection>
 			scm:git:git@github.com:codelibs/fess-webapp-multimodal.git</developerConnection>
 		<url>https://github.com/codelibs/fess-webapp-multimodal</url>
-	  <tag>fess-webapp-multimodal-15.4.0</tag>
+	  <tag>HEAD</tag>
   </scm>
 	<parent>
 		<groupId>org.codelibs.fess</groupId>
