@@ -15,15 +15,16 @@
  */
 package org.codelibs.fess.multimodal.query;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.TestInfo;
 
-public class MultiModalPhraseQueryCommandTest extends PlainTestCase {
+public class MultiModalPhraseQueryCommandTest extends UnitWebappTestCase {
 
     private MultiModalPhraseQueryCommand command;
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    protected void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
         command = new MultiModalPhraseQueryCommand();
     }
 

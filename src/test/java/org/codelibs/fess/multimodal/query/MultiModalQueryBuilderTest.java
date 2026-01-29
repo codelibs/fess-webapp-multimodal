@@ -15,9 +15,10 @@
  */
 package org.codelibs.fess.multimodal.query;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.TestInfo;
 
-public class MultiModalQueryBuilderTest extends PlainTestCase {
+public class MultiModalQueryBuilderTest extends UnitWebappTestCase {
 
     private static final String TEST_FIELD = "test_vector_field";
     private static final String TEST_QUERY = "test search query";
@@ -25,8 +26,8 @@ public class MultiModalQueryBuilderTest extends PlainTestCase {
     private static final Float TEST_MIN_SCORE = 0.8f;
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    protected void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
     }
 
     public void test_builder_defaultValues_setsCorrectDefaults() {

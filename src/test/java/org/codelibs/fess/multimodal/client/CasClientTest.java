@@ -23,9 +23,9 @@ import org.codelibs.core.io.ResourceUtil;
 import org.codelibs.curl.CurlException;
 import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
 
-public class CasClientTest extends PlainTestCase {
+public class CasClientTest extends UnitWebappTestCase {
     static final Logger logger = Logger.getLogger(CasExtractorTest.class.getName());
 
     public void test_encodeImage() throws Exception {

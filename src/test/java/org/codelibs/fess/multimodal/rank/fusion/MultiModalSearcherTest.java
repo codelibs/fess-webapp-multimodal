@@ -15,23 +15,24 @@
  */
 package org.codelibs.fess.multimodal.rank.fusion;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.TestInfo;
 
-public class MultiModalSearcherTest extends PlainTestCase {
+public class MultiModalSearcherTest extends UnitWebappTestCase {
 
     private MultiModalSearcher searcher;
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    protected void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
         searcher = new MultiModalSearcher();
     }
 
     @Override
-    protected void tearDown() throws Exception {
+    protected void tearDown(TestInfo testInfo) throws Exception {
         // Clean up any remaining context
         searcher.closeContext();
-        super.tearDown();
+        super.tearDown(testInfo);
     }
 
     public void test_searcherInstantiation() {

@@ -22,9 +22,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import org.codelibs.fess.crawler.exception.CrawlerSystemException;
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
 
-public class CasAccessExceptionTest extends PlainTestCase {
+public class CasAccessExceptionTest extends UnitWebappTestCase {
 
     public void test_constructorWithMessageAndCause_storesValuesCorrectly() {
         final String message = "Test error message";
