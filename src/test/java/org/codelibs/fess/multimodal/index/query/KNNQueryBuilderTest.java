@@ -24,9 +24,9 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
 
-public class KNNQueryBuilderTest extends PlainTestCase {
+public class KNNQueryBuilderTest extends UnitWebappTestCase {
 
     private static final String TEST_FIELD = "test_vector_field";
     private static final float[] TEST_VECTOR = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };

@@ -30,20 +30,21 @@ import org.codelibs.fess.multimodal.MultiModalConstants;
 import org.codelibs.fess.multimodal.client.CasClient;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.TestInfo;
 
 /**
  * @author shinsuke
  *
  */
-public class CasExtractorTest extends PlainTestCase {
+public class CasExtractorTest extends UnitWebappTestCase {
     static final Logger logger = Logger.getLogger(CasExtractorTest.class.getName());
 
     public CasExtractor casExtractor;
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    protected void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
 
         final StandardCrawlerContainer container = new StandardCrawlerContainer();
         container//

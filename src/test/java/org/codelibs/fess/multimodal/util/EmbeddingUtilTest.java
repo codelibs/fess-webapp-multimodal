@@ -15,9 +15,9 @@
  */
 package org.codelibs.fess.multimodal.util;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
 
-public class EmbeddingUtilTest extends PlainTestCase {
+public class EmbeddingUtilTest extends UnitWebappTestCase {
 
     public void test_encodeFloatArray() {
         final float[] array = { 1.0f, 2.0f, 3.0f };

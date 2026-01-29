@@ -19,9 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
 
-public class EmbeddingIngesterTest extends PlainTestCase {
+public class EmbeddingIngesterTest extends UnitWebappTestCase {
 
     private static final String VECTOR_FIELD = "vector_field";
 

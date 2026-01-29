@@ -23,15 +23,16 @@ import static org.codelibs.fess.multimodal.MultiModalConstants.CONTENT_SPACE_TYP
 import static org.codelibs.fess.multimodal.MultiModalConstants.DEFAULT_CONTENT_FIELD;
 import static org.codelibs.fess.multimodal.MultiModalConstants.MIN_SCORE;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.TestInfo;
 
-public class MultiModalSearchHelperTest extends PlainTestCase {
+public class MultiModalSearchHelperTest extends UnitWebappTestCase {
 
     private MultiModalSearchHelper helper;
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    protected void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
         helper = new MultiModalSearchHelper();
 
         // Clear any existing system properties
@@ -39,9 +40,9 @@ public class MultiModalSearchHelperTest extends PlainTestCase {
     }
 
     @Override
-    protected void tearDown() throws Exception {
+    protected void tearDown(TestInfo testInfo) throws Exception {
         clearSystemProperties();
-        super.tearDown();
+        super.tearDown(testInfo);
     }
 
     private void clearSystemProperties() {
