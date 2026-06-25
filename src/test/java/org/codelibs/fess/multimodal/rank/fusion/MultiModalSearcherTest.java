@@ -16,6 +16,7 @@
 package org.codelibs.fess.multimodal.rank.fusion;
 
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 public class MultiModalSearcherTest extends UnitWebappTestCase {
@@ -35,17 +36,20 @@ public class MultiModalSearcherTest extends UnitWebappTestCase {
         super.tearDown(testInfo);
     }
 
+    @Test
     public void test_searcherInstantiation() {
         // Test that the searcher can be instantiated without issues
         assertNotNull(searcher);
         assertTrue(searcher instanceof MultiModalSearcher);
     }
 
+    @Test
     public void test_getContext_withoutSetup_returnsNull() {
         // Without any context setup, should return null gracefully
         assertNull(searcher.getContext());
     }
 
+    @Test
     public void test_closeContext_withoutContext_handlesGracefully() {
         // Should not throw exception when closing non-existent context
         searcher.closeContext();

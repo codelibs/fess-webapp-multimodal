@@ -16,14 +16,17 @@
 package org.codelibs.fess.multimodal.util;
 
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 
 public class EmbeddingUtilTest extends UnitWebappTestCase {
 
+    @Test
     public void test_encodeFloatArray() {
         final float[] array = { 1.0f, 2.0f, 3.0f };
         assertEquals("P4AAAEAAAABAQAAA", EmbeddingUtil.encodeFloatArray(array));
     }
 
+    @Test
     public void test_decodeFloatArray() {
         final float[] array = EmbeddingUtil.decodeFloatArray("P4AAAEAAAABAQAAA");
         assertEquals(3, array.length);
@@ -32,6 +35,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         assertEquals(3.0f, array[2]);
     }
 
+    @Test
     public void test_roundTripEncoding_preservesAccuracy() {
         final float[] original = { 1.5f, -2.7f, 0.0f, 999.9f, -0.001f };
         final String encoded = EmbeddingUtil.encodeFloatArray(original);
@@ -43,6 +47,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeFloatArray_emptyArray_handlesCorrectly() {
         final float[] emptyArray = new float[0];
         final String encoded = EmbeddingUtil.encodeFloatArray(emptyArray);
@@ -52,6 +57,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         assertEquals(0, decoded.length);
     }
 
+    @Test
     public void test_encodeFloatArray_singleElement_handlesCorrectly() {
         final float[] singleElement = { 42.0f };
         final String encoded = EmbeddingUtil.encodeFloatArray(singleElement);
@@ -61,6 +67,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         assertEquals(42.0f, decoded[0], 0.0001f);
     }
 
+    @Test
     public void test_encodeFloatArray_largeArray_handlesCorrectly() {
         final float[] largeArray = new float[1000];
         for (int i = 0; i < largeArray.length; i++) {
@@ -76,6 +83,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeFloatArray_specialValues_handlesCorrectly() {
         final float[] specialValues =
                 { Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NaN, Float.MAX_VALUE, Float.MIN_VALUE, -0.0f, 0.0f };
@@ -93,6 +101,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         assertEquals(0.0f, decoded[6]);
     }
 
+    @Test
     public void test_encodeFloatArray_nullArray_throwsException() {
         try {
             EmbeddingUtil.encodeFloatArray(null);
@@ -102,6 +111,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_decodeFloatArray_nullString_throwsException() {
         try {
             EmbeddingUtil.decodeFloatArray(null);
@@ -111,6 +121,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_decodeFloatArray_emptyString_returnsEmptyArray() {
         final float[] result = EmbeddingUtil.decodeFloatArray("");
 
@@ -119,6 +130,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         assertEquals(0, result.length);
     }
 
+    @Test
     public void test_decodeFloatArray_invalidBase64_throwsException() {
         try {
             EmbeddingUtil.decodeFloatArray("invalid_base64!");
@@ -128,6 +140,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_decodeFloatArray_malformedData_handlesGracefully() {
         // Valid base64 but not divisible by 4 bytes (float size)
         // "Hello" in base64 decodes to 5 bytes
@@ -139,6 +152,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         // The actual float value depends on how "Hell" bytes are interpreted as float
     }
 
+    @Test
     public void test_encoding_consistency_multipleRuns() {
         final float[] testArray = { 1.1f, 2.2f, 3.3f, 4.4f, 5.5f };
 
@@ -160,6 +174,7 @@ public class EmbeddingUtilTest extends UnitWebappTestCase {
         assertArrayEquals(testArray, decoded3);
     }
 
+    @Test
     public void test_performance_largeArrays() {
         // Test with progressively larger arrays to ensure reasonable performance
         final int[] sizes = { 100, 512, 1024, 2048 };

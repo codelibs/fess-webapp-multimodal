@@ -23,9 +23,11 @@ import java.io.ObjectOutputStream;
 
 import org.codelibs.fess.crawler.exception.CrawlerSystemException;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 
 public class CasAccessExceptionTest extends UnitWebappTestCase {
 
+    @Test
     public void test_constructorWithMessageAndCause_storesValuesCorrectly() {
         final String message = "Test error message";
         final Exception cause = new IOException("IO error");
@@ -37,6 +39,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertTrue(exception instanceof CrawlerSystemException);
     }
 
+    @Test
     public void test_constructorWithMessageOnly_storesMessageCorrectly() {
         final String message = "Test error message";
 
@@ -47,6 +50,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertTrue(exception instanceof CrawlerSystemException);
     }
 
+    @Test
     public void test_constructorWithNullMessage_acceptsNull() {
         final Exception cause = new IOException("IO error");
 
@@ -56,6 +60,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertEquals(cause, exception.getCause());
     }
 
+    @Test
     public void test_constructorWithEmptyMessage_acceptsEmpty() {
         final String message = "";
         final Exception cause = new IOException("IO error");
@@ -66,6 +71,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertEquals(cause, exception.getCause());
     }
 
+    @Test
     public void test_constructorWithNullCause_acceptsNull() {
         final String message = "Test error message";
 
@@ -75,6 +81,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertNull(exception.getCause());
     }
 
+    @Test
     public void test_constructorWithNullMessageAndCause_acceptsBoth() {
         final CasAccessException exception = new CasAccessException(null, null);
 
@@ -82,6 +89,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertNull(exception.getCause());
     }
 
+    @Test
     public void test_exceptionChaining_preservesCauseCorrectly() {
         final IOException rootCause = new IOException("Root cause");
         final RuntimeException intermediateCause = new RuntimeException("Intermediate", rootCause);
@@ -94,6 +102,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertEquals(rootCause, exception.getCause().getCause());
     }
 
+    @Test
     public void test_stackTrace_includesToStringOfCause() {
         final IOException cause = new IOException("IO error details");
         final String message = "CAS connection failed";
@@ -106,6 +115,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertTrue(stackTrace.contains("IO error details"));
     }
 
+    @Test
     public void test_serialization_roundTripPreservesData() throws Exception {
         final String message = "Serialization test message";
         final IOException cause = new IOException("Serialization cause");
@@ -129,6 +139,7 @@ public class CasAccessExceptionTest extends UnitWebappTestCase {
         assertEquals(original.getCause().getMessage(), deserialized.getCause().getMessage());
     }
 
+    @Test
     public void test_inheritanceHierarchy_extendsCorrectClass() {
         final CasAccessException exception = new CasAccessException("test");
 
