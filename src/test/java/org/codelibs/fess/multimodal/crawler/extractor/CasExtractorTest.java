@@ -31,6 +31,7 @@ import org.codelibs.fess.multimodal.client.CasClient;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 /**
@@ -62,6 +63,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         casExtractor.init();
     }
 
+    @Test
     public void test_getTika() {
         final InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg");
         final ExtractData extractData = casExtractor.getText(in, null);
@@ -74,6 +76,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         assertEquals(5, embedding.length);
     }
 
+    @Test
     public void test_getText_withValidImage_extractsEmbedding() {
         final InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg");
         final ExtractData extractData = casExtractor.getText(in, null);
@@ -93,6 +96,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         assertEquals(5.0f, embedding[4]);
     }
 
+    @Test
     public void test_getText_withParams_passesParams() {
         final InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg");
         final Map<String, String> params = new HashMap<>();
@@ -107,6 +111,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         assertEquals(1, values.length);
     }
 
+    @Test
     public void test_getText_withErrorInEmbedding_handlesGracefully() {
         final StandardCrawlerContainer container = new StandardCrawlerContainer();
         container//
@@ -138,6 +143,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getText_withNullInputStream_handlesGracefully() {
         try {
             final ExtractData extractData = casExtractor.getText(null, null);
@@ -148,6 +154,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getText_withEmptyInputStream_handlesGracefully() {
         final InputStream in = new ByteArrayInputStream(new byte[0]);
         try {
@@ -161,11 +168,13 @@ public class CasExtractorTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getWeight_returnsCorrectValue() {
         final int weight = casExtractor.getWeight();
         assertEquals(10, weight);
     }
 
+    @Test
     public void test_init_initializesClient() {
         final StandardCrawlerContainer container = new StandardCrawlerContainer();
         container//
@@ -185,6 +194,7 @@ public class CasExtractorTest extends UnitWebappTestCase {
         assertNotNull(extractor.client);
     }
 
+    @Test
     public void test_getText_withMultipleImages_processesEach() {
         for (int i = 0; i < 3; i++) {
             final InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg");

@@ -16,6 +16,7 @@
 package org.codelibs.fess.multimodal.query;
 
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 public class MultiModalTermQueryCommandTest extends UnitWebappTestCase {
@@ -28,6 +29,7 @@ public class MultiModalTermQueryCommandTest extends UnitWebappTestCase {
         command = new MultiModalTermQueryCommand();
     }
 
+    @Test
     public void test_commandInstantiation() {
         // Test that the command can be instantiated without issues
         assertNotNull(command);

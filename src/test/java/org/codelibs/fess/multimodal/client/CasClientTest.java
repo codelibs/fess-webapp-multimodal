@@ -24,10 +24,12 @@ import org.codelibs.curl.CurlException;
 import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 
 public class CasClientTest extends UnitWebappTestCase {
     static final Logger logger = Logger.getLogger(CasExtractorTest.class.getName());
 
+    @Test
     public void test_encodeImage() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -38,6 +40,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getImageEmbedding() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -49,6 +52,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getTextEmbedding() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -60,6 +64,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_init_setsDefaultValues() {
         final CasClient client = new CasClient();
         client.init();
@@ -72,6 +77,7 @@ public class CasClientTest extends UnitWebappTestCase {
         assertEquals("http://localhost:51000", client.clipEndpoint);
     }
 
+    @Test
     public void test_init_readsSystemProperties() {
         try {
             System.setProperty("clip.image.width", "512");
@@ -100,6 +106,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeImage_nullInputStream_throwsException() {
         final CasClient client = new CasClient();
         client.init();
@@ -116,6 +123,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeImage_emptyInputStream_throwsException() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -129,6 +137,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeImage_invalidImageData_throwsException() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -142,6 +151,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeImage_imageTooLarge_throwsException() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -157,6 +167,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_encodeImage_differentAspectRatios() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -168,6 +179,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getTextEmbedding_emptyString_handlesGracefully() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -180,6 +192,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getTextEmbedding_longText_handlesGracefully() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -197,6 +210,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_getTextEmbedding_specialCharacters_handlesGracefully() throws Exception {
         final CasClient client = new CasClient();
         client.init();
@@ -209,6 +223,7 @@ public class CasClientTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_sendImage_validBase64_returnsEmbedding() {
         final CasClient client = new CasClient();
         client.init();

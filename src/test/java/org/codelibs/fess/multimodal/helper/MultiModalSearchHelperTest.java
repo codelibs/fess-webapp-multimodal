@@ -24,6 +24,7 @@ import static org.codelibs.fess.multimodal.MultiModalConstants.DEFAULT_CONTENT_F
 import static org.codelibs.fess.multimodal.MultiModalConstants.MIN_SCORE;
 
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 public class MultiModalSearchHelperTest extends UnitWebappTestCase {
@@ -54,6 +55,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         System.clearProperty(MIN_SCORE);
     }
 
+    @Test
     public void test_load_defaultConfiguration_setsDefaults() {
         // No system properties set
         final String result = helper.load();
@@ -64,6 +66,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertTrue(result.contains("min_score="));
     }
 
+    @Test
     public void test_load_customConfiguration_appliesCustomValues() {
         // Set custom properties
         System.setProperty(CONTENT_FIELD, "custom_vector_field");
@@ -77,6 +80,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertTrue(result.contains("min_score=0.8"));
     }
 
+    @Test
     public void test_load_invalidMinScore_handlesGracefully() {
         System.setProperty(MIN_SCORE, "invalid_number");
 
@@ -86,6 +90,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertTrue(result.contains("min_score="));
     }
 
+    @Test
     public void test_load_emptyMinScore_handlesGracefully() {
         System.setProperty(MIN_SCORE, "");
 
@@ -94,6 +99,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertNull(helper.getMinScore());
     }
 
+    @Test
     public void test_load_whitespaceMinScore_handlesGracefully() {
         System.setProperty(MIN_SCORE, "   ");
 
@@ -108,6 +114,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
     // Note: rewriteQuery tests removed due to ComponentUtil dependency
     // These would test query rewriting logic that requires container initialization
 
+    @Test
     public void test_getMinScore_returnsConfiguredValue() {
         System.setProperty(MIN_SCORE, "0.7");
         helper.load();
@@ -115,6 +122,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals(Float.valueOf(0.7f), helper.getMinScore());
     }
 
+    @Test
     public void test_getVectorField_returnsConfiguredValue() {
         System.setProperty(CONTENT_FIELD, "my_vector_field");
         helper.load();
@@ -122,42 +130,49 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals("my_vector_field", helper.getVectorField());
     }
 
+    @Test
     public void test_rewriteQuery_nullQuery_returnsNull() {
         helper.load();
         final String result = helper.rewriteQuery(null);
         assertNull(result);
     }
 
+    @Test
     public void test_rewriteQuery_emptyQuery_returnsEmpty() {
         helper.load();
         final String result = helper.rewriteQuery("");
         assertEquals("", result);
     }
 
+    @Test
     public void test_rewriteQuery_blankQuery_returnsBlank() {
         helper.load();
         final String result = helper.rewriteQuery("   ");
         assertEquals("   ", result);
     }
 
+    @Test
     public void test_rewriteQuery_singleWord_returnsUnchanged() {
         helper.load();
         final String result = helper.rewriteQuery("test");
         assertEquals("test", result);
     }
 
+    @Test
     public void test_rewriteQuery_queryWithQuotes_returnsUnchanged() {
         helper.load();
         final String result = helper.rewriteQuery("\"test query\"");
         assertEquals("\"test query\"", result);
     }
 
+    @Test
     public void test_rewriteQuery_queryWithoutSpaces_returnsUnchanged() {
         helper.load();
         final String result = helper.rewriteQuery("testquery");
         assertEquals("testquery", result);
     }
 
+    @Test
     public void test_load_trimsVectorField() {
         System.setProperty(CONTENT_FIELD, "  custom_vector  ");
         helper.load();
@@ -165,6 +180,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals("custom_vector", helper.getVectorField());
     }
 
+    @Test
     public void test_load_multipleInvocations_updatesValues() {
         System.setProperty(CONTENT_FIELD, "field1");
         System.setProperty(MIN_SCORE, "0.5");
@@ -181,6 +197,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals(Float.valueOf(0.9f), helper.getMinScore());
     }
 
+    @Test
     public void test_load_zeroMinScore_setsZero() {
         System.setProperty(MIN_SCORE, "0.0");
         helper.load();
@@ -188,6 +205,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals(Float.valueOf(0.0f), helper.getMinScore());
     }
 
+    @Test
     public void test_load_negativeMinScore_setsNegative() {
         System.setProperty(MIN_SCORE, "-0.5");
         helper.load();
@@ -195,6 +213,7 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals(Float.valueOf(-0.5f), helper.getMinScore());
     }
 
+    @Test
     public void test_load_veryLargeMinScore_setsLarge() {
         System.setProperty(MIN_SCORE, "999999.99");
         helper.load();
@@ -202,11 +221,13 @@ public class MultiModalSearchHelperTest extends UnitWebappTestCase {
         assertEquals(Float.valueOf(999999.99f), helper.getMinScore());
     }
 
+    @Test
     public void test_getMinScore_withoutLoad_returnsNull() {
         final MultiModalSearchHelper newHelper = new MultiModalSearchHelper();
         assertNull(newHelper.getMinScore());
     }
 
+    @Test
     public void test_getVectorField_withoutLoad_returnsNull() {
         final MultiModalSearchHelper newHelper = new MultiModalSearchHelper();
         assertNull(newHelper.getVectorField());

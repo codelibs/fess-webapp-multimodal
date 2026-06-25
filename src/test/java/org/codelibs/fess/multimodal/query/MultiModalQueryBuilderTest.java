@@ -16,6 +16,7 @@
 package org.codelibs.fess.multimodal.query;
 
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 public class MultiModalQueryBuilderTest extends UnitWebappTestCase {
@@ -30,6 +31,7 @@ public class MultiModalQueryBuilderTest extends UnitWebappTestCase {
         super.setUp(testInfo);
     }
 
+    @Test
     public void test_builder_defaultValues_setsCorrectDefaults() {
         final MultiModalQueryBuilder.Builder builder = new MultiModalQueryBuilder.Builder();
         final MultiModalQueryBuilder queryBuilder = builder.build();
@@ -40,6 +42,7 @@ public class MultiModalQueryBuilderTest extends UnitWebappTestCase {
         assertNull(queryBuilder.minScore);
     }
 
+    @Test
     public void test_builder_fluentAPI_chainsCorrectly() {
         final MultiModalQueryBuilder queryBuilder =
                 new MultiModalQueryBuilder.Builder().field(TEST_FIELD).query(TEST_QUERY).k(TEST_K).minScore(TEST_MIN_SCORE).build();
@@ -50,30 +53,35 @@ public class MultiModalQueryBuilderTest extends UnitWebappTestCase {
         assertEquals(TEST_MIN_SCORE, queryBuilder.minScore);
     }
 
+    @Test
     public void test_builder_field_setsFieldName() {
         final MultiModalQueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().field("my_vector_field").build();
 
         assertEquals("my_vector_field", queryBuilder.field);
     }
 
+    @Test
     public void test_builder_query_setsQueryText() {
         final MultiModalQueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().query("my search query").build();
 
         assertEquals("my search query", queryBuilder.query);
     }
 
+    @Test
     public void test_builder_k_setsKValue() {
         final MultiModalQueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().k(25).build();
 
         assertEquals(25, queryBuilder.k);
     }
 
+    @Test
     public void test_builder_minScore_setsMinScore() {
         final MultiModalQueryBuilder queryBuilder = new MultiModalQueryBuilder.Builder().minScore(0.9f).build();
 
         assertEquals(Float.valueOf(0.9f), queryBuilder.minScore);
     }
 
+    @Test
     public void test_builder_build_constructsCorrectly() {
         final MultiModalQueryBuilder.Builder builder = new MultiModalQueryBuilder.Builder().field(TEST_FIELD).query(TEST_QUERY);
 
@@ -90,6 +98,7 @@ public class MultiModalQueryBuilderTest extends UnitWebappTestCase {
     // Note: Testing toQueryBuilder() requires CasClient which depends on ComponentUtil
     // These tests focus on the Builder pattern functionality that can be tested in isolation
 
+    @Test
     public void test_builder_multipleBuilds_createsIndependentInstances() {
         final MultiModalQueryBuilder.Builder builder = new MultiModalQueryBuilder.Builder().field(TEST_FIELD).query(TEST_QUERY);
 

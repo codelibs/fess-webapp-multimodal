@@ -20,11 +20,13 @@ import java.util.Map;
 
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 
 public class EmbeddingIngesterTest extends UnitWebappTestCase {
 
     private static final String VECTOR_FIELD = "vector_field";
 
+    @Test
     public void test_process() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -50,6 +52,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertEquals("P4AAAEAAAABAQAAA", result.get(VECTOR_FIELD));
     }
 
+    @Test
     public void test_process_emptyMap_returnsEmptyMap() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -61,6 +64,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertEquals(0, result.size());
     }
 
+    @Test
     public void test_process_withoutVectorField_returnsUnchanged() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -76,6 +80,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertEquals(123, result.get("another_field"));
     }
 
+    @Test
     public void test_process_withValidEncodedEmbedding_decodesCorrectly() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -96,6 +101,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_process_withMultipleEncodedValues_usesFirstValue() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -115,6 +121,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertEquals(2.0f, decodedArray[1], 0.0001f);
     }
 
+    @Test
     public void test_process_withNonArrayValue_keepsOriginal() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -128,6 +135,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertEquals("not_an_array", result.get(VECTOR_FIELD));
     }
 
+    @Test
     public void test_process_withNullVectorField_handlesGracefully() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -142,6 +150,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertNull(result.get(VECTOR_FIELD));
     }
 
+    @Test
     public void test_process_withEmptyStringArray_throwsException() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -158,6 +167,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_process_withLargeEmbedding_handlesCorrectly() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -181,6 +191,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_process_withAdditionalFields_preservesOtherFields() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -200,6 +211,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertEquals(123, result.get("id"));
     }
 
+    @Test
     public void test_process_multipleInvocations_worksConsistently() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = VECTOR_FIELD;
@@ -219,6 +231,7 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
     public void test_process_withDifferentVectorField_usesCorrectField() {
         final EmbeddingIngester ingester = new EmbeddingIngester();
         ingester.vectorField = "custom_vector";

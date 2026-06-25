@@ -25,6 +25,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.junit.jupiter.api.Test;
 
 public class KNNQueryBuilderTest extends UnitWebappTestCase {
 
@@ -32,6 +33,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
     private static final float[] TEST_VECTOR = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };
     private static final int TEST_K = 15;
 
+    @Test
     public void test_builder_defaultValues_setsCorrectDefaults() {
         final KNNQueryBuilder.Builder builder = new KNNQueryBuilder.Builder();
         final KNNQueryBuilder query = builder.build();
@@ -46,6 +48,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertNull(query.minScore);
     }
 
+    @Test
     public void test_builder_fluentAPI_chainsCorrectly() {
         final BoolQueryBuilder testFilter = QueryBuilders.boolQuery();
 
@@ -67,12 +70,14 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertEquals(Float.valueOf(0.5f), query.minScore);
     }
 
+    @Test
     public void test_builder_field_setsFieldName() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field("my_field").build();
 
         assertEquals("my_field", query.fieldName);
     }
 
+    @Test
     public void test_builder_vector_setsVector() {
         final float[] vector = { 1.0f, 2.0f };
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().vector(vector).build();
@@ -80,12 +85,14 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertSame(vector, query.vector);
     }
 
+    @Test
     public void test_builder_k_setsKValue() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().k(25).build();
 
         assertEquals(25, query.k);
     }
 
+    @Test
     public void test_builder_filter_setsFilter() {
         final BoolQueryBuilder filter = QueryBuilders.boolQuery();
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().filter(filter).build();
@@ -93,24 +100,28 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertSame(filter, query.filter);
     }
 
+    @Test
     public void test_builder_ignoreUnmapped_setsFlag() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().ignoreUnmapped(true).build();
 
         assertTrue(query.ignoreUnmapped);
     }
 
+    @Test
     public void test_builder_maxDistance_setsThreshold() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().maxDistance(0.9f).build();
 
         assertEquals(Float.valueOf(0.9f), query.maxDistance);
     }
 
+    @Test
     public void test_builder_minScore_setsThreshold() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().minScore(0.3f).build();
 
         assertEquals(Float.valueOf(0.3f), query.minScore);
     }
 
+    @Test
     public void test_builder_build_constructsImmutableInstance() {
         final KNNQueryBuilder.Builder builder = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR);
 
@@ -130,6 +141,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
     // Note: XContent serialization tests removed due to JsonXContent usage complexity
     // These would test the doXContent method but require proper XContentBuilder setup
 
+    @Test
     public void test_equals_identicalObjects_returnsTrue() {
         final KNNQueryBuilder query1 = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR).k(TEST_K).build();
 
@@ -139,6 +151,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertTrue(query2.equals(query1));
     }
 
+    @Test
     public void test_equals_differentFieldName_returnsFalse() {
         final KNNQueryBuilder query1 = new KNNQueryBuilder.Builder().field("field1").vector(TEST_VECTOR).build();
 
@@ -147,6 +160,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertFalse(query1.equals(query2));
     }
 
+    @Test
     public void test_equals_differentVector_returnsFalse() {
         final KNNQueryBuilder query1 = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(new float[] { 1.0f, 2.0f }).build();
 
@@ -155,6 +169,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertFalse(query1.equals(query2));
     }
 
+    @Test
     public void test_equals_differentK_returnsFalse() {
         final KNNQueryBuilder query1 = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR).k(10).build();
 
@@ -163,18 +178,21 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertFalse(query1.equals(query2));
     }
 
+    @Test
     public void test_equals_nullComparison_returnsFalse() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR).build();
 
         assertFalse(query.equals(null));
     }
 
+    @Test
     public void test_equals_selfComparison_returnsTrue() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR).build();
 
         assertTrue(query.equals(query));
     }
 
+    @Test
     public void test_hashCode_identicalObjects_returnsSameHashCode() {
         final KNNQueryBuilder query1 = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(TEST_VECTOR).k(TEST_K).build();
 
@@ -183,6 +201,7 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertEquals(query1.hashCode(), query2.hashCode());
     }
 
+    @Test
     public void test_hashCode_differentObjects_mayReturnDifferentHashCode() {
         final KNNQueryBuilder query1 = new KNNQueryBuilder.Builder().field("field1").vector(TEST_VECTOR).build();
 
@@ -192,12 +211,14 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertNotSame(query1.hashCode(), query2.hashCode());
     }
 
+    @Test
     public void test_build_nullVector_allowsNull() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(null).build();
 
         assertNull(query.vector);
     }
 
+    @Test
     public void test_build_emptyVector_allowsEmpty() {
         final float[] emptyVector = new float[0];
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).vector(emptyVector).build();
@@ -206,24 +227,28 @@ public class KNNQueryBuilderTest extends UnitWebappTestCase {
         assertEquals(0, query.vector.length);
     }
 
+    @Test
     public void test_build_negativeK_allowsNegative() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).k(-1).build();
 
         assertEquals(-1, query.k);
     }
 
+    @Test
     public void test_build_zeroK_allowsZero() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).k(0).build();
 
         assertEquals(0, query.k);
     }
 
+    @Test
     public void test_getWriteableName_returnsKnn() {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).build();
 
         assertEquals("knn", query.getWriteableName());
     }
 
+    @Test
     public void test_doToQuery_throwsUnsupportedOperationException() throws IOException {
         final KNNQueryBuilder query = new KNNQueryBuilder.Builder().field(TEST_FIELD).build();
 
