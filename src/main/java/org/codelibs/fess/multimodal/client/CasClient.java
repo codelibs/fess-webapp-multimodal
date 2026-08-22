@@ -35,10 +35,14 @@ import javax.imageio.stream.ImageInputStream;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.codelibs.core.lang.StringUtil;
 import org.codelibs.curl.Curl;
 import org.codelibs.curl.CurlException;
 import org.codelibs.curl.CurlResponse;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
+import org.codelibs.fess.multimodal.MultiModalConstants;
+import org.codelibs.fess.mylasta.direction.FessConfig;
+import org.codelibs.fess.util.ComponentUtil;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -92,15 +96,82 @@ public class CasClient {
      */
     @PostConstruct
     public void init() {
-        imageWidth = Integer.getInteger("clip.image.width", 224);
-        imageHeight = Integer.getInteger("clip.image.height", 224);
-        maxImageWidth = Integer.getInteger("clip.image.max_width", 3000);
-        maxImageHeight = Integer.getInteger("clip.image.max_height", 2000);
-        imageFormat = System.getProperty("clip.image.format", "png");
-        clipEndpoint = System.getProperty("clip.server.endpoint", "http://localhost:51000");
+        final FessConfig fessConfig = getFessConfigForInit();
+        imageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_WIDTH, 224);
+        imageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_HEIGHT, 224);
+        maxImageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_WIDTH, 3000);
+        maxImageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT, 2000);
+        imageFormat = getStringProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_FORMAT, "png");
+        clipEndpoint = getStringProperty(fessConfig, MultiModalConstants.CLIP_API_URL, MultiModalConstants.DEFAULT_CLIP_API_URL);
 
-        logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", imageWidth, imageHeight, maxImageWidth, maxImageHeight,
-                imageFormat, clipEndpoint);
+        if (logger.isDebugEnabled()) {
+            logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", imageWidth, imageHeight, maxImageWidth, maxImageHeight,
+                    imageFormat, clipEndpoint);
+        }
+    }
+
+    /**
+     * Returns the FessConfig instance for initialization. Can be overridden by tests.
+     *
+     * @return the config accessor, or null if not available
+     */
+    protected FessConfig getFessConfigForInit() {
+        try {
+            return ComponentUtil.getFessConfig();
+        } catch (final Exception e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("FessConfig not available, falling back to System properties.", e);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Reads a string system property, falling back to the default when unset.
+     * Uses FessConfig if available, otherwise uses System.getProperty.
+     *
+     * @param fessConfig the config accessor (may be null)
+     * @param key the system property key (without "fess.system." prefix)
+     * @param defaultValue the fallback
+     * @return the resolved value
+     */
+    protected String getStringProperty(final FessConfig fessConfig, final String key, final String defaultValue) {
+        if (fessConfig != null) {
+            return fessConfig.getSystemProperty(key, defaultValue);
+        } else {
+            return System.getProperty("fess.system." + key, defaultValue);
+        }
+    }
+
+    /**
+     * Reads an int system property, falling back to the default when unset or unparsable.
+     * Uses FessConfig if available, otherwise uses System.getProperty.
+     *
+     * @param fessConfig the config accessor (may be null)
+     * @param key the system property key (without "fess.system." prefix)
+     * @param defaultValue the fallback
+     * @return the resolved value
+     */
+    protected int getIntProperty(final FessConfig fessConfig, final String key, final int defaultValue) {
+        final String value = getStringProperty(fessConfig, key, null);
+        if (StringUtil.isBlank(value)) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (final NumberFormatException e) {
+            logger.warn("Invalid {} value: {}. Using {}.", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Returns the configured CLIP server base URL.
+     *
+     * @return the base URL
+     */
+    public String getClipEndpoint() {
+        return clipEndpoint;
     }
 
     /**

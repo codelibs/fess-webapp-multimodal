@@ -26,6 +26,7 @@ import org.codelibs.core.io.ResourceUtil;
 import org.codelibs.curl.CurlException;
 import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
+import org.codelibs.fess.multimodal.MultiModalConstants;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
 import org.junit.jupiter.api.Test;
 
@@ -85,12 +86,12 @@ public class CasClientTest extends UnitWebappTestCase {
     @Test
     public void test_init_readsSystemProperties() {
         try {
-            System.setProperty("clip.image.width", "512");
-            System.setProperty("clip.image.height", "512");
-            System.setProperty("clip.image.max_width", "5000");
-            System.setProperty("clip.image.max_height", "4000");
-            System.setProperty("clip.image.format", "jpg");
-            System.setProperty("clip.server.endpoint", "http://localhost:8080");
+            System.setProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_WIDTH, "512");
+            System.setProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_HEIGHT, "512");
+            System.setProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_MAX_WIDTH, "5000");
+            System.setProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT, "4000");
+            System.setProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_FORMAT, "jpg");
+            System.setProperty("fess.system." + MultiModalConstants.CLIP_API_URL, "http://localhost:8080");
 
             final CasClient client = new CasClient();
             client.init();
@@ -102,12 +103,12 @@ public class CasClientTest extends UnitWebappTestCase {
             assertEquals("jpg", client.imageFormat);
             assertEquals("http://localhost:8080", client.clipEndpoint);
         } finally {
-            System.clearProperty("clip.image.width");
-            System.clearProperty("clip.image.height");
-            System.clearProperty("clip.image.max_width");
-            System.clearProperty("clip.image.max_height");
-            System.clearProperty("clip.image.format");
-            System.clearProperty("clip.server.endpoint");
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_WIDTH);
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_HEIGHT);
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_MAX_WIDTH);
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT);
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_FORMAT);
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_API_URL);
         }
     }
 
@@ -301,4 +302,32 @@ public class CasClientTest extends UnitWebappTestCase {
             server.stop(0);
         }
     }
+
+    @Test
+    public void test_init_readsSystemPropertyChannel() {
+        System.setProperty("fess.system." + MultiModalConstants.CLIP_API_URL, "http://clip.example.com:51000");
+        System.setProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_WIDTH, "336");
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            assertEquals("http://clip.example.com:51000", client.getClipEndpoint());
+            assertEquals(336, client.imageWidth);
+        } finally {
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_API_URL);
+            System.clearProperty("fess.system." + MultiModalConstants.CLIP_IMAGE_WIDTH);
+        }
+    }
+
+    @Test
+    public void test_init_defaults() {
+        final CasClient client = new CasClient();
+        client.init();
+        assertEquals("http://localhost:51000", client.getClipEndpoint());
+        assertEquals(224, client.imageWidth);
+        assertEquals(224, client.imageHeight);
+        assertEquals(3000, client.maxImageWidth);
+        assertEquals(2000, client.maxImageHeight);
+        assertEquals("png", client.imageFormat);
+    }
+
 }
