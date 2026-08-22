@@ -96,13 +96,13 @@ public class CasClient {
      */
     @PostConstruct
     public void init() {
-        final FessConfig fessConfig = getFessConfigForInit();
+        final FessConfig fessConfig = ComponentUtil.getFessConfig();
         imageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_WIDTH, 224);
         imageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_HEIGHT, 224);
         maxImageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_WIDTH, 3000);
         maxImageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT, 2000);
-        imageFormat = getStringProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_FORMAT, "png");
-        clipEndpoint = getStringProperty(fessConfig, MultiModalConstants.CLIP_API_URL, MultiModalConstants.DEFAULT_CLIP_API_URL);
+        imageFormat = fessConfig.getSystemProperty(MultiModalConstants.CLIP_IMAGE_FORMAT, "png");
+        clipEndpoint = fessConfig.getSystemProperty(MultiModalConstants.CLIP_API_URL, MultiModalConstants.DEFAULT_CLIP_API_URL);
 
         if (logger.isDebugEnabled()) {
             logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", imageWidth, imageHeight, maxImageWidth, maxImageHeight,
@@ -111,49 +111,15 @@ public class CasClient {
     }
 
     /**
-     * Returns the FessConfig instance for initialization. Can be overridden by tests.
-     *
-     * @return the config accessor, or null if not available
-     */
-    protected FessConfig getFessConfigForInit() {
-        try {
-            return ComponentUtil.getFessConfig();
-        } catch (final Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("FessConfig not available, falling back to System properties.", e);
-            }
-            return null;
-        }
-    }
-
-    /**
-     * Reads a string system property, falling back to the default when unset.
-     * Uses FessConfig if available, otherwise uses System.getProperty.
-     *
-     * @param fessConfig the config accessor (may be null)
-     * @param key the system property key (without "fess.system." prefix)
-     * @param defaultValue the fallback
-     * @return the resolved value
-     */
-    protected String getStringProperty(final FessConfig fessConfig, final String key, final String defaultValue) {
-        if (fessConfig != null) {
-            return fessConfig.getSystemProperty(key, defaultValue);
-        } else {
-            return System.getProperty("fess.system." + key, defaultValue);
-        }
-    }
-
-    /**
      * Reads an int system property, falling back to the default when unset or unparsable.
-     * Uses FessConfig if available, otherwise uses System.getProperty.
      *
-     * @param fessConfig the config accessor (may be null)
-     * @param key the system property key (without "fess.system." prefix)
+     * @param fessConfig the config accessor
+     * @param key the system property key
      * @param defaultValue the fallback
      * @return the resolved value
      */
     protected int getIntProperty(final FessConfig fessConfig, final String key, final int defaultValue) {
-        final String value = getStringProperty(fessConfig, key, null);
+        final String value = fessConfig.getSystemProperty(key, null);
         if (StringUtil.isBlank(value)) {
             return defaultValue;
         }
