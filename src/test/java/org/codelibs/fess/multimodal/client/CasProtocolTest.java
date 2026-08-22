@@ -80,4 +80,53 @@ public class CasProtocolTest extends UnitWebappTestCase {
             // expected
         }
     }
+
+    @Test
+    public void test_parseEmbedding_dataElementNotMap() {
+        final List<Object> data = new ArrayList<>();
+        data.add("not-a-map");
+        final Map<String, Object> response = new HashMap<>();
+        response.put("data", data);
+        try {
+            CasProtocol.parseEmbedding(response);
+            fail("CasAccessException is expected.");
+        } catch (final CasAccessException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void test_parseEmbedding_embeddingNotList() {
+        final Map<String, Object> item = new HashMap<>();
+        item.put("embedding", "not-a-list");
+        final List<Object> data = new ArrayList<>();
+        data.add(item);
+        final Map<String, Object> response = new HashMap<>();
+        response.put("data", data);
+        try {
+            CasProtocol.parseEmbedding(response);
+            fail("CasAccessException is expected.");
+        } catch (final CasAccessException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void test_parseEmbedding_nonNumericComponent() {
+        final List<Object> embedding = new ArrayList<>();
+        embedding.add(Double.valueOf(1.0d));
+        embedding.add("not-a-number");
+        final Map<String, Object> item = new HashMap<>();
+        item.put("embedding", embedding);
+        final List<Object> data = new ArrayList<>();
+        data.add(item);
+        final Map<String, Object> response = new HashMap<>();
+        response.put("data", data);
+        try {
+            CasProtocol.parseEmbedding(response);
+            fail("CasAccessException is expected.");
+        } catch (final CasAccessException e) {
+            // expected
+        }
+    }
 }

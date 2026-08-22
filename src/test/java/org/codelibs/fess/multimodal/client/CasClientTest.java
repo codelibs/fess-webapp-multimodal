@@ -17,6 +17,9 @@ package org.codelibs.fess.multimodal.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 import org.codelibs.core.io.ResourceUtil;
@@ -25,6 +28,8 @@ import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
 import org.junit.jupiter.api.Test;
+
+import com.sun.net.httpserver.HttpServer;
 
 public class CasClientTest extends UnitWebappTestCase {
     static final Logger logger = Logger.getLogger(CasExtractorTest.class.getName());
@@ -237,6 +242,63 @@ public class CasClientTest extends UnitWebappTestCase {
             logger.warning(e.getMessage());
         } catch (final Exception e) {
             logger.warning(e.getMessage());
+        }
+    }
+
+    @Test
+    public void test_sendImage_non2xxStatus_throwsCasAccessException() throws Exception {
+        final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext(CasProtocol.POST_PATH, exchange -> {
+                final byte[] body = "{\"message\":\"internal error\"}".getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(500, body.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(body);
+                }
+            });
+            server.start();
+
+            final CasClient client = new CasClient();
+            client.init();
+            client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+
+            try {
+                client.sendImage("QUJD");
+                fail("CasAccessException is expected.");
+            } catch (final CasAccessException e) {
+                assertTrue("message should mention the HTTP status", e.getMessage().contains("500"));
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void test_sendImage_2xxStatus_returnsParsedEmbedding() throws Exception {
+        final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext(CasProtocol.POST_PATH, exchange -> {
+                final byte[] body = "{\"data\":[{\"embedding\":[0.5,1.5,-2.0]}]}".getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, body.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(body);
+                }
+            });
+            server.start();
+
+            final CasClient client = new CasClient();
+            client.init();
+            client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+
+            final float[] embedding = client.sendImage("QUJD");
+            assertEquals(3, embedding.length);
+            assertEquals(0.5f, embedding[0]);
+            assertEquals(1.5f, embedding[1]);
+            assertEquals(-2.0f, embedding[2]);
+        } finally {
+            server.stop(0);
         }
     }
 }
