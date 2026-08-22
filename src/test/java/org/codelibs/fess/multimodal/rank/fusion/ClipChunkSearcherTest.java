@@ -27,6 +27,7 @@ import org.codelibs.fess.mylasta.action.FessUserBean;
 import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
 import org.codelibs.fess.util.ComponentUtil;
+import org.dbflute.optional.OptionalThing;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -194,6 +195,57 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
             }
         } finally {
             ComponentUtil.setFessConfig(null);
+        }
+    }
+
+    // ---- Safety property 3: only the free text must reach the embedding step. `search()` cannot
+    // be driven end-to-end without a live Lasta Di container (core's isSearchEnabled() resolves
+    // ChunkVectorHelper from ComponentUtil.getComponent, which throws IllegalStateException with
+    // no container initialized -- confirmed by running it, not assumed). Instead this drives
+    // ClipChunkSearcher.search() through a test-only subclass that overrides isSearchEnabled()
+    // (bypassing the ChunkVectorHelper/container lookup) and isPlainQuery(String) (recording
+    // exactly what core's own gate receives, then returning false so SemanticChunkSearcher.search
+    // short-circuits into emptyResult() before touching the embedding client manager or issuing
+    // any OpenSearch call). Both are the same protected extension points core already documents as
+    // overridable; no production code changes.
+
+    @Test
+    public void test_search_embedsOnlyFreeText_stripsConditions() {
+        final RecordingSearcher searcher = new RecordingSearcher();
+        searcher.search("cat filetype:jpeg", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertEquals("cat", searcher.recordedQuery);
+    }
+
+    @Test
+    public void test_search_unsplittableQuery_passesOriginalQueryThrough() {
+        final RecordingSearcher searcher = new RecordingSearcher();
+        searcher.search("cat AND dog", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertEquals("cat AND dog", searcher.recordedQuery);
+    }
+
+    /**
+     * Records the exact string {@link ClipChunkSearcher#search} forwards to
+     * {@code super.search(...)}, without needing a live container.
+     */
+    private static class RecordingSearcher extends ClipChunkSearcher {
+        private String recordedQuery;
+
+        @Override
+        protected boolean isSearchEnabled() {
+            // Core's real implementation resolves ChunkVectorHelper from ComponentUtil, which
+            // needs a live Lasta Di container this plain unit test does not stand up. Only
+            // whether the feature is enabled is being bypassed here -- what gets recorded below is
+            // still core's own isPlainQuery gate, fed whatever ClipChunkSearcher.search() decided
+            // to forward.
+            return true;
+        }
+
+        @Override
+        protected boolean isPlainQuery(final String query) {
+            recordedQuery = query;
+            // false short-circuits SemanticChunkSearcher.search() into emptyResult() immediately
+            // after this call, before params/userBean are ever dereferenced.
+            return false;
         }
     }
 
