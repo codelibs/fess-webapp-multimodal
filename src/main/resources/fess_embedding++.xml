@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE components PUBLIC "-//DBFLUTE//DTD LastaDi 1.0//EN"
+	"http://dbflute.org/meta/lastadi10.dtd">
+<components>
+	<!-- Loaded by the webapp and by the chunk child process (both include
+	     fess_embedding.xml); deliberately NOT app++.xml, which would also
+	     instantiate this client in the crawler, suggest and thumbnail
+	     processes where no embeddingClientManager exists. -->
+	<component name="clipEmbeddingClient"
+		class="org.codelibs.fess.multimodal.embedding.ClipEmbeddingClient">
+		<postConstruct name="register"/>
+		<postConstruct name="init"/>
+		<preDestroy name="destroy"/>
+	</component>
+</components>

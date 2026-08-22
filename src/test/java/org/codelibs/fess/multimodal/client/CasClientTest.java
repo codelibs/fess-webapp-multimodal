@@ -85,23 +85,6 @@ public class CasClientTest extends UnitWebappTestCase {
     }
 
     @Test
-    public void test_getTextEmbedding() throws Exception {
-        setUpDefaultMockConfig();
-        try {
-            final CasClient client = new CasClient();
-            client.init();
-            try {
-                final float[] embedding = client.getTextEmbedding("running dogs");
-                assertEquals(512, embedding.length);
-            } catch (final CurlException e) {
-                logger.warning(e.getMessage());
-            }
-        } finally {
-            tearDownMockConfig();
-        }
-    }
-
-    @Test
     public void test_init_setsDefaultValues() {
         final FessConfig mockConfig = new FessConfig.SimpleImpl() {
             @Override
@@ -262,65 +245,6 @@ public class CasClientTest extends UnitWebappTestCase {
     }
 
     @Test
-    public void test_getTextEmbedding_emptyString_handlesGracefully() throws Exception {
-        setUpDefaultMockConfig();
-        try {
-            final CasClient client = new CasClient();
-            client.init();
-
-            try {
-                final float[] embedding = client.getTextEmbedding("");
-                assertNotNull(embedding);
-            } catch (final CurlException e) {
-                logger.warning(e.getMessage());
-            }
-        } finally {
-            tearDownMockConfig();
-        }
-    }
-
-    @Test
-    public void test_getTextEmbedding_longText_handlesGracefully() throws Exception {
-        setUpDefaultMockConfig();
-        try {
-            final CasClient client = new CasClient();
-            client.init();
-
-            final StringBuilder longText = new StringBuilder();
-            for (int i = 0; i < 1000; i++) {
-                longText.append("word ");
-            }
-
-            try {
-                final float[] embedding = client.getTextEmbedding(longText.toString());
-                assertNotNull(embedding);
-            } catch (final CurlException e) {
-                logger.warning(e.getMessage());
-            }
-        } finally {
-            tearDownMockConfig();
-        }
-    }
-
-    @Test
-    public void test_getTextEmbedding_specialCharacters_handlesGracefully() throws Exception {
-        setUpDefaultMockConfig();
-        try {
-            final CasClient client = new CasClient();
-            client.init();
-
-            try {
-                final float[] embedding = client.getTextEmbedding("日本語のテキスト \"quoted\" <html>");
-                assertNotNull(embedding);
-            } catch (final CurlException e) {
-                logger.warning(e.getMessage());
-            }
-        } finally {
-            tearDownMockConfig();
-        }
-    }
-
-    @Test
     public void test_sendImage_validBase64_returnsEmbedding() {
         setUpDefaultMockConfig();
         try {
@@ -401,6 +325,47 @@ public class CasClientTest extends UnitWebappTestCase {
                 assertEquals(0.5f, embedding[0]);
                 assertEquals(1.5f, embedding[1]);
                 assertEquals(-2.0f, embedding[2]);
+            } finally {
+                tearDownMockConfig();
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void test_sendImage_2xxStatus_malformedJson_throwsCasAccessException() throws Exception {
+        final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext(CasProtocol.POST_PATH, exchange -> {
+                // A 2xx status with a body that is not valid JSON at all: the PARSER lambda in
+                // CasClient wraps the parse failure in a CurlException (a RuntimeException, not
+                // an IOException), which previously escaped sendImage() unwrapped instead of
+                // surfacing as a CasAccessException.
+                final byte[] body = "not json".getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, body.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(body);
+                }
+            });
+            server.start();
+
+            setUpDefaultMockConfig();
+            try {
+                final CasClient client = new CasClient();
+                client.init();
+                client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+
+                try {
+                    client.sendImage("QUJD");
+                    fail("CasAccessException is expected.");
+                } catch (final CasAccessException e) {
+                    // Expected: the CurlException from the malformed JSON must be wrapped.
+                } catch (final CurlException e) {
+                    fail("A malformed JSON body must be wrapped in a CasAccessException, not surfaced as a raw CurlException: "
+                            + e.getMessage());
+                }
             } finally {
                 tearDownMockConfig();
             }
