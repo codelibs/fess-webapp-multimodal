@@ -89,4 +89,17 @@ public class EmbeddingIngesterTest extends UnitWebappTestCase {
         assertFalse(result.containsKey(Constants.CONTENT_CHUNK_VECTOR_FIELD));
         assertFalse(result.containsKey(Constants.CONTENT_CHUNK_STATUS_FIELD));
     }
+
+    @Test
+    public void test_process_emptyStagingArray_dropsItWithoutStatus() {
+        final EmbeddingIngester ingester = new EmbeddingIngester();
+        final Map<String, Object> target = new HashMap<>();
+        target.put(MultiModalConstants.EMBEDDING_STAGING_FIELD, new String[] {});
+
+        final Map<String, Object> result = ingester.process(target);
+
+        assertFalse(result.containsKey(MultiModalConstants.EMBEDDING_STAGING_FIELD));
+        assertFalse(result.containsKey(Constants.CONTENT_CHUNK_VECTOR_FIELD));
+        assertFalse(result.containsKey(Constants.CONTENT_CHUNK_STATUS_FIELD));
+    }
 }
