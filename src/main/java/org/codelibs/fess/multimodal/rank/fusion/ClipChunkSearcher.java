@@ -78,9 +78,20 @@ public class ClipChunkSearcher extends SemanticChunkSearcher {
             // Not splittable: let the base apply its own gate, which will skip the branch.
             return super.search(query, params, userBean);
         }
+        if (split.conditions.isEmpty()) {
+            return super.search(split.text, params, userBean);
+        }
         final QueryBuilder conditionFilter = buildConditionFilter(split.conditions);
         if (conditionFilter == null) {
-            return super.search(split.text, params, userBean);
+            // Non-empty conditions that failed to become a filter must never be silently dropped:
+            // searching split.text without them would let documents the user meant to exclude
+            // leak through the vector branch. Falling back to the original (unsplit) query
+            // instead routes it through core's own isPlainQuery gate, which then skips the
+            // vector branch entirely -- the safe side of this failure. Unreachable today
+            // (StructuredQuerySplitter never returns a non-empty conditions map that
+            // buildConditionFilter can't turn into a filter -- see the note there), but the two
+            // are independently testable classes, so this guards the seam between them.
+            return super.search(query, params, userBean);
         }
         conditionFilterHolder.set(conditionFilter);
         try {
@@ -98,15 +109,19 @@ public class ClipChunkSearcher extends SemanticChunkSearcher {
         if (conditionFilter == null) {
             return super.buildKnnChunkQuery(queryVector, params, filter);
         }
-        // Merged into the kNN query's own filter rather than bolted onto the outer bool:
-        // that is what makes it efficient filtering, so ANN does not spend its k on
-        // documents that are about to be discarded.
+        // Merged into the kNN query's own filter too, so ANN does not spend its k on documents
+        // that are about to be discarded (efficient filtering) -- but per core's own comment on
+        // the identical tradeoff for its permission filter (SemanticChunkSearcher#createSearchCondition:
+        // "the copy handed to the knn query below is a recall aid, not the security boundary"),
+        // that copy alone is not the enforcement boundary. The outer bool filter below is what
+        // actually enforces the condition, matching the exact-mode path in buildExactChunkQuery
+        // and the two places core itself applies its permission filter.
         final BoolQueryBuilder merged = QueryBuilders.boolQuery();
         if (filter != null) {
             merged.filter(filter);
         }
         merged.filter(conditionFilter);
-        return super.buildKnnChunkQuery(queryVector, params, merged);
+        return QueryBuilders.boolQuery().must(super.buildKnnChunkQuery(queryVector, params, merged)).filter(conditionFilter);
     }
 
     @Override

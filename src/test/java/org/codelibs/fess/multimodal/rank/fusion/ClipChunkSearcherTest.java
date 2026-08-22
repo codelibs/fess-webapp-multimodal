@@ -198,6 +198,40 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
         }
     }
 
+    @Test
+    public void test_buildKnnChunkQuery_appliesConditionFilter_toOuterBoolAsWell() {
+        // C1 fix: core places its permission filter in TWO places -- the outer bool `filter`
+        // (the actual enforcement boundary) and the knn query's own filter (a recall aid, per
+        // SemanticChunkSearcher#createSearchCondition's own comment: "the copy handed to the knn
+        // query below is a recall aid, not the security boundary"). Prior to this fix,
+        // buildKnnChunkQuery only put the recovered condition inside the knn query's filter,
+        // which the earlier substring-only JSON assertions above could not tell apart from the
+        // outer-bool placement. This test inspects the returned QueryBuilder's structure
+        // directly so it fails if the outer filter clause goes missing again.
+        installMinimalFessConfigStub();
+        try {
+            final ClipChunkSearcher searcher = new ClipChunkSearcher();
+            final QueryBuilder condition = QueryBuilders.termsQuery("filetype", Collections.singletonList("jpeg"));
+            searcher.conditionFilterHolder.set(condition);
+            try {
+                final QueryBuilder query =
+                        searcher.buildKnnChunkQuery(new float[] { 0.1f, 0.2f }, new StubSearchRequestParams(0, 10), null);
+                assertTrue(query instanceof BoolQueryBuilder);
+                final BoolQueryBuilder boolQuery = (BoolQueryBuilder) query;
+                // The knn (nested) query is the sole MUST clause (it drives scoring); the
+                // condition is also a FILTER clause on the outer bool, which is what actually
+                // enforces it regardless of the knn engine's filter semantics.
+                assertEquals(1, boolQuery.must().size());
+                assertEquals(1, boolQuery.filter().size());
+                assertTrue(boolQuery.filter().get(0) == condition);
+            } finally {
+                searcher.conditionFilterHolder.remove();
+            }
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
+    }
+
     // ---- Safety property 3: only the free text must reach the embedding step. `search()` cannot
     // be driven end-to-end without a live Lasta Di container (core's isSearchEnabled() resolves
     // ChunkVectorHelper from ComponentUtil.getComponent, which throws IllegalStateException with
@@ -223,6 +257,40 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
         assertEquals("cat AND dog", searcher.recordedQuery);
     }
 
+    // C2 fix: non-empty conditions that fail to become a filter must fall back to the
+    // *original* query, never split.text (which would search unfiltered and silently drop the
+    // conditions). Unreachable via the real StructuredQuerySplitter (see the invariant note on
+    // its `conditions` map), so this drives it through a searcher whose buildConditionFilter is
+    // overridden to simulate the failure.
+    @Test
+    public void test_search_nonEmptyConditionsWithNoFilter_fallsBackToOriginalQuery() {
+        // Declared as RecordingSearcher (not the subtype) so recordedQuery -- private to
+        // RecordingSearcher and not inherited by the subclass per JLS 8.2 -- resolves normally.
+        final RecordingSearcher searcher = new NullConditionFilterRecordingSearcher();
+        searcher.search("cat filetype:jpeg", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        // The ORIGINAL query, not split.text ("cat"): core's own isPlainQuery then rejects it and
+        // skips the vector branch entirely, rather than searching "cat" with the condition lost.
+        assertEquals("cat filetype:jpeg", searcher.recordedQuery);
+    }
+
+    // C3: conditionFilterHolder must never leak into a later search on the same (pooled) thread.
+    // Both branches of search() that can populate it are covered: the conditioned-query path
+    // (which sets it, then must clear it in `finally`) and the plain-query path (which must
+    // never touch it in the first place, per the C2 short-circuit above).
+    @Test
+    public void test_search_clearsConditionFilterHolder_afterConditionedQuery() {
+        final RecordingSearcher searcher = new RecordingSearcher();
+        searcher.search("cat filetype:jpeg", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertNull(searcher.conditionFilterHolder.get());
+    }
+
+    @Test
+    public void test_search_conditionFilterHolder_staysNullForPlainQuery() {
+        final RecordingSearcher searcher = new RecordingSearcher();
+        searcher.search("cat", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertNull(searcher.conditionFilterHolder.get());
+    }
+
     /**
      * Records the exact string {@link ClipChunkSearcher#search} forwards to
      * {@code super.search(...)}, without needing a live container.
@@ -246,6 +314,18 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
             // false short-circuits SemanticChunkSearcher.search() into emptyResult() immediately
             // after this call, before params/userBean are ever dereferenced.
             return false;
+        }
+    }
+
+    /**
+     * Simulates a {@link ClipChunkSearcher#buildConditionFilter} that fails to turn non-empty
+     * conditions into a filter -- unreachable via the real {@code StructuredQuerySplitter}, but
+     * this pins {@link ClipChunkSearcher#search}'s fail-closed fallback for that seam (C2).
+     */
+    private static class NullConditionFilterRecordingSearcher extends RecordingSearcher {
+        @Override
+        protected QueryBuilder buildConditionFilter(final Map<String, List<String>> conditions) {
+            return null;
         }
     }
 

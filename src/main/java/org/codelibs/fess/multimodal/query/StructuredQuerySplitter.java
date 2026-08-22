@@ -87,6 +87,8 @@ public final class StructuredQuerySplitter {
         if (StringUtil.isBlank(query)) {
             return null;
         }
+        // Invariant: if extractGroups/extractTerms below returns null, this map may be partially
+        // populated but must never be exposed -- only a non-null Split's conditions are ever read.
         final Map<String, List<String>> conditions = new HashMap<>();
         String remaining = query;
 
