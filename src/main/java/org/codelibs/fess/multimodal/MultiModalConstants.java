@@ -81,6 +81,14 @@ public class MultiModalConstants {
     /** Default CLIP server base URL. */
     public static final String DEFAULT_CLIP_API_URL = "http://localhost:51000";
 
+    /**
+     * Transient document field the crawler metadata mapping writes the base64-encoded image
+     * embedding into. {@link org.codelibs.fess.multimodal.ingest.EmbeddingIngester} converts
+     * it into the nested content_chunk_vector shape and removes it, so it never reaches the
+     * index -- it has no mapping and would otherwise be dynamically mapped.
+     */
+    public static final String EMBEDDING_STAGING_FIELD = "multimodal_embedding_b64";
+
     private MultiModalConstants() {
         // nothing
     }
