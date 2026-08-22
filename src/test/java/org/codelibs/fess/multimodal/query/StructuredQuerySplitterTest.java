@@ -109,4 +109,47 @@ public class StructuredQuerySplitterTest extends UnitWebappTestCase {
         assertNull(StructuredQuerySplitter.split("   "));
         assertNull(StructuredQuerySplitter.split(null));
     }
+
+    /**
+     * The back-reference in QUOTED_GROUP requires every OR-ed term to share the same field
+     * name. A mismatched field name means the group as a whole fails to match, the parentheses
+     * survive into the residual text, and RESIDUAL_SYNTAX then rejects the query.
+     */
+    @Test
+    public void test_mismatchedFieldNameOrGroupIsRejected() {
+        assertNull(StructuredQuerySplitter.split("cat (label:\"a\" OR host:\"b\")"));
+    }
+
+    /** Same as above but with three terms, so only the first two share a field name. */
+    @Test
+    public void test_mismatchedFieldNameOrGroupWithThreeTermsIsRejected() {
+        assertNull(StructuredQuerySplitter.split("cat (label:\"a\" OR host:\"b\" OR label:\"c\")"));
+    }
+
+    /** An allowlist violation must reject the whole query regardless of where it appears. */
+    @Test
+    public void test_allowlistViolationAfterAllowedFieldIsRejected() {
+        assertNull(StructuredQuerySplitter.split("cat label:\"a\" anything:1"));
+    }
+
+    /** Same as above but with the disallowed field appearing first. */
+    @Test
+    public void test_allowlistViolationBeforeAllowedFieldIsRejected() {
+        assertNull(StructuredQuerySplitter.split("cat anything:1 label:\"a\""));
+    }
+
+    /**
+     * An empty quoted value is a legitimate condition, not a missing one: the list must still
+     * hold exactly one element. {@code List.toString()} renders a single-element list holding an
+     * empty string as "[]", the same as an empty list, so this asserts size() explicitly rather
+     * than relying on toString() or isEmpty().
+     */
+    @Test
+    public void test_emptyQuotedValueIsPreserved() {
+        final Split split = StructuredQuerySplitter.split("cat label:\"\"");
+        assertNotNull(split);
+        assertEquals("cat", split.text);
+        assertEquals(1, split.conditions.get("label").size());
+        assertEquals("", split.conditions.get("label").get(0));
+    }
 }
