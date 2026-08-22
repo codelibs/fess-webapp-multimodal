@@ -122,24 +122,23 @@ public class CasClient {
      * @throws CasAccessException if the server communication fails
      */
     protected float[] sendImage(final String encodedImage) {
-        final String body = "{\"data\":[{\"blob\":\"" + StringEscapeUtils.escapeJson(encodedImage) + "\"}],\"execEndpoint\":\"/\"}";
-        logger.debug("request body: {}", body);
-        try (CurlResponse response = Curl.post(clipEndpoint + "/post").header("Content-Type", "application/json").body(body).execute()) {
-            final Map<String, Object> contentMap = response.getContent(PARSER);
-            if (((contentMap.get("data") instanceof final List dataList)
-                    && (!dataList.isEmpty() && dataList.get(0) instanceof final Map data))
-                    && (data.get("embedding") instanceof final List embeddingList)) {
-                logger.debug("embedding: {}", embeddingList);
-                final float[] embedding = new float[embeddingList.size()];
-                for (int i = 0; i < embedding.length; i++) {
-                    embedding[i] = ((Number) embeddingList.get(i)).floatValue();
-                }
-                return embedding;
+        final String body = CasProtocol.buildBlobRequest(encodedImage);
+        if (logger.isDebugEnabled()) {
+            logger.debug("request body length: {}", body.length());
+        }
+        try (CurlResponse response =
+                Curl.post(clipEndpoint + CasProtocol.POST_PATH).header("Content-Type", "application/json").body(body).execute()) {
+            // curl4j does not throw on a non-2xx response, so the status has to be checked
+            // explicitly -- otherwise an error page is parsed as an empty embedding and the
+            // document is indexed silently vectorless.
+            final int httpStatusCode = response.getHttpStatusCode();
+            if (httpStatusCode < 200 || httpStatusCode >= 300) {
+                throw new CasAccessException("Clip server returned HTTP " + httpStatusCode);
             }
+            return CasProtocol.parseEmbedding(response.getContent(PARSER));
         } catch (final IOException e) {
             throw new CasAccessException("Clip server failed to generate an embedding.", e);
         }
-        throw new CasAccessException("Clip server cannot generate an embedding");
     }
 
     /**
