@@ -15,141 +15,277 @@
  */
 package org.codelibs.fess.multimodal.query;
 
+import java.util.List;
+
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.codelibs.fess.mylasta.direction.FessConfig;
+import org.codelibs.fess.util.ComponentUtil;
 import org.codelibs.fess.multimodal.query.StructuredQuerySplitter.Split;
 import org.junit.jupiter.api.Test;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
 
 public class StructuredQuerySplitterTest extends UnitWebappTestCase {
 
+    // ---- Accepted: the shapes QueryStringBuilder folds into the query string ----
+
     @Test
-    public void test_plainQuery() {
-        final Split split = StructuredQuerySplitter.split("mountain sunset");
+    public void test_plainText_hasNoConditions() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("mountain sunset");
         assertNotNull(split);
         assertEquals("mountain sunset", split.text);
-        assertTrue(split.conditions.isEmpty());
+        assertNull(split.conditionFilter);
+        assertTrue(splitter.converted.isEmpty());
     }
 
     @Test
-    public void test_singleLabel() {
-        final Split split = StructuredQuerySplitter.split("mountain sunset label:\"photos\"");
+    public void test_singleTerm() {
+        final Split split = new StubProcessorSplitter().split("cat");
+        assertNotNull(split);
+        assertEquals("cat", split.text);
+        assertNull(split.conditionFilter);
+    }
+
+    /** ` filetype:"jpeg"` -- what QueryStringBuilder appends for a single facet selection. */
+    @Test
+    public void test_singleValueCondition() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("mountain sunset filetype:\"jpeg\"");
         assertNotNull(split);
         assertEquals("mountain sunset", split.text);
-        assertEquals(1, split.conditions.size());
-        assertEquals(1, split.conditions.get("label").size());
-        assertEquals("photos", split.conditions.get("label").get(0));
-    }
-
-    @Test
-    public void test_labelOrGroup() {
-        final Split split = StructuredQuerySplitter.split("cat (label:\"a\" OR label:\"b\")");
-        assertNotNull(split);
-        assertEquals("cat", split.text);
-        assertEquals(2, split.conditions.get("label").size());
-        assertEquals("a", split.conditions.get("label").get(0));
-        assertEquals("b", split.conditions.get("label").get(1));
-    }
-
-    @Test
-    public void test_bareExQ() {
-        final Split split = StructuredQuerySplitter.split("cat filetype:jpeg");
-        assertNotNull(split);
-        assertEquals("cat", split.text);
-        assertEquals("jpeg", split.conditions.get("filetype").get(0));
-    }
-
-    @Test
-    public void test_multipleConditions() {
-        final Split split = StructuredQuerySplitter.split("red car filetype:jpeg label:\"photos\"");
-        assertNotNull(split);
-        assertEquals("red car", split.text);
-        assertEquals("jpeg", split.conditions.get("filetype").get(0));
-        assertEquals("photos", split.conditions.get("label").get(0));
-    }
-
-    /** sort is not a filter and the semantic branch cannot honour it: refuse the query. */
-    @Test
-    public void test_sortIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat sort:filename.asc"));
-    }
-
-    /** A field outside the allowlist is refused rather than silently ignored. */
-    @Test
-    public void test_unknownFieldIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat anything:1"));
-    }
-
-    @Test
-    public void test_rangeIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat timestamp:[now/d-1d TO *]"));
-    }
-
-    @Test
-    public void test_userQuotedPhraseIsRejected() {
-        assertNull(StructuredQuerySplitter.split("\"mountain sunset\""));
-    }
-
-    @Test
-    public void test_booleanOperatorIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat AND dog"));
-    }
-
-    @Test
-    public void test_wildcardIsRejected() {
-        assertNull(StructuredQuerySplitter.split("ca* filetype:jpeg"));
-    }
-
-    /** Conditions only, no free text: nothing to embed, so refuse. */
-    @Test
-    public void test_conditionsOnlyIsRejected() {
-        assertNull(StructuredQuerySplitter.split("filetype:jpeg"));
-    }
-
-    @Test
-    public void test_blankIsRejected() {
-        assertNull(StructuredQuerySplitter.split("   "));
-        assertNull(StructuredQuerySplitter.split(null));
+        assertEquals(1, splitter.converted.size());
+        assertEquals("filetype:jpeg", splitter.converted.get(0));
+        assertEquals(1, filterClauses(split).size());
     }
 
     /**
-     * The back-reference in QUOTED_GROUP requires every OR-ed term to share the same field
-     * name. A mismatched field name means the group as a whole fails to match, the parentheses
-     * survive into the residual text, and RESIDUAL_SYNTAX then rejects the query.
+     * ` (label:"a" OR label:"b")` -- a multi-value facet selection. The whole OR group must reach
+     * core as ONE sub-query: splitting it into two clauses would turn the user's OR into an AND
+     * and return nothing.
      */
     @Test
-    public void test_mismatchedFieldNameOrGroupIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat (label:\"a\" OR host:\"b\")"));
+    public void test_orGroupReachesCoreAsOneSubQuery() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("cat (label:\"a\" OR label:\"b\")");
+        assertNotNull(split);
+        assertEquals("cat", split.text);
+        assertEquals(1, splitter.converted.size());
+        assertTrue(splitter.converted.get(0).contains("label:a"));
+        assertTrue(splitter.converted.get(0).contains("label:b"));
+        assertEquals(1, filterClauses(split).size());
     }
 
-    /** Same as above but with three terms, so only the first two share a field name. */
     @Test
-    public void test_mismatchedFieldNameOrGroupWithThreeTermsIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat (label:\"a\" OR host:\"b\" OR label:\"c\")"));
+    public void test_multipleFieldsBecomeMultipleClauses() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("cat dog label:\"a\" filetype:\"b\"");
+        assertNotNull(split);
+        assertEquals("cat dog", split.text);
+        assertEquals(2, filterClauses(split).size());
     }
 
-    /** An allowlist violation must reject the whole query regardless of where it appears. */
+    /** A negated condition is expressible as a filter, so it is kept rather than refused. */
     @Test
-    public void test_allowlistViolationAfterAllowedFieldIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat label:\"a\" anything:1"));
-    }
-
-    /** Same as above but with the disallowed field appearing first. */
-    @Test
-    public void test_allowlistViolationBeforeAllowedFieldIsRejected() {
-        assertNull(StructuredQuerySplitter.split("cat anything:1 label:\"a\""));
+    public void test_negatedCondition_becomesMustNot() {
+        final Split split = new StubProcessorSplitter().split("cat -label:\"x\"");
+        assertNotNull(split);
+        assertEquals("cat", split.text);
+        final BoolQueryBuilder filter = (BoolQueryBuilder) split.conditionFilter;
+        assertEquals(0, filter.filter().size());
+        assertEquals(1, filter.mustNot().size());
     }
 
     /**
-     * An empty quoted value is a legitimate condition, not a missing one: the list must still
-     * hold exactly one element. {@code List.toString()} renders a single-element list holding an
-     * empty string as "[]", the same as an empty list, so this asserts size() explicitly rather
-     * than relying on toString() or isEmpty().
+     * Optional text alongside a required condition. The classic parser leaves the two spellings
+     * of this in different shapes -- a flat clause list here, a nested boolean for the
+     * parenthesised form below -- and both must split the same way, or which queries keep the
+     * vector branch would depend on punctuation the user did not mean to be significant.
      */
     @Test
-    public void test_emptyQuotedValueIsPreserved() {
-        final Split split = StructuredQuerySplitter.split("cat label:\"\"");
+    public void test_optionalTextWithRequiredCondition() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("cat OR dog label:\"x\"");
+        assertNotNull(split);
+        assertEquals("cat dog", split.text);
+        assertEquals(1, filterClauses(split).size());
+    }
+
+    @Test
+    public void test_optionalTextWithRequiredCondition_parenthesised() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("(cat OR dog) label:\"x\"");
+        assertNotNull(split);
+        assertEquals("cat dog", split.text);
+        assertEquals(1, filterClauses(split).size());
+    }
+
+    @Test
+    public void test_cjkText() {
+        final Split split = new StubProcessorSplitter().split("赤い車 label:\"写真\"");
+        assertNotNull(split);
+        assertEquals("赤い車", split.text);
+        assertNotNull(split.conditionFilter);
+    }
+
+    // ---- Accepted because core's QueryProcessor has a command for them. The previous
+    // pattern-matching implementation refused all three: it recognised only an allowlist of
+    // fields, and only bare or quoted values.
+
+    @Test
+    public void test_rangeCondition() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        final Split split = splitter.split("cat timestamp:[now/d-1d TO *]");
         assertNotNull(split);
         assertEquals("cat", split.text);
-        assertEquals(1, split.conditions.get("label").size());
-        assertEquals("", split.conditions.get("label").get(0));
+        assertEquals(1, splitter.converted.size());
+        assertTrue(splitter.converted.get(0).startsWith("timestamp:"));
+    }
+
+    @Test
+    public void test_inurlCondition() {
+        final Split split = new StubProcessorSplitter().split("cat inurl:\"foo\"");
+        assertNotNull(split);
+        assertEquals("cat", split.text);
+        assertNotNull(split.conditionFilter);
+    }
+
+    @Test
+    public void test_boostedCondition() {
+        final Split split = new StubProcessorSplitter().split("cat label:\"x\"^2");
+        assertNotNull(split);
+        assertEquals("cat", split.text);
+        assertNotNull(split.conditionFilter);
+    }
+
+    // ---- Refused ----
+
+    /** Nothing to embed: the vector branch has no query of its own. */
+    @Test
+    public void test_conditionsWithoutText() {
+        assertNull(new StubProcessorSplitter().split("label:\"x\""));
+    }
+
+    /** Syntax on the text itself cannot survive being turned into a vector. */
+    @Test
+    public void test_phraseOnDefaultField() {
+        assertNull(new StubProcessorSplitter().split("\"mountain sunset\""));
+    }
+
+    @Test
+    public void test_prefixOnDefaultField() {
+        assertNull(new StubProcessorSplitter().split("cat*"));
+    }
+
+    @Test
+    public void test_boostOnDefaultField() {
+        assertNull(new StubProcessorSplitter().split("cat^2"));
+    }
+
+    /** A term the user excluded cannot be expressed in an embedding. */
+    @Test
+    public void test_negatedText() {
+        assertNull(new StubProcessorSplitter().split("cat -dog"));
+    }
+
+    /**
+     * The same, alongside a condition. Worth its own case: this is the shape where an excluded
+     * term would otherwise be collected into the text and embedded as something to look for.
+     */
+    @Test
+    public void test_negatedTextAlongsideACondition() {
+        assertNull(new StubProcessorSplitter().split("cat -dog label:\"x\""));
+    }
+
+    /** `cat OR label:x` has no reading in which the condition is a filter over the text. */
+    @Test
+    public void test_textOrCondition() {
+        assertNull(new StubProcessorSplitter().split("cat OR label:\"x\""));
+    }
+
+    /**
+     * An optional condition is not a filter: in `+cat dog OR label:x` the label is what the query
+     * calls preferable, and filtering on it would drop documents the user asked to keep.
+     */
+    @Test
+    public void test_optionalCondition() {
+        assertNull(new StubProcessorSplitter().split("+cat dog OR label:\"x\""));
+    }
+
+    /** The conditions in `(cat label:x) OR dog` are not a filter over anything. */
+    @Test
+    public void test_conditionInsideAnOptionalGroup() {
+        assertNull(new StubProcessorSplitter().split("(cat label:\"x\") OR dog"));
+    }
+
+    /**
+     * An ordering cannot be applied to a score-ordered branch. This matters in practice: a
+     * deployment with a default sort configured has `sort:` on every single query.
+     */
+    @Test
+    public void test_sort() {
+        assertNull(new StubProcessorSplitter().split("cat sort:filename.asc"));
+        assertNull(new StubProcessorSplitter().split("cat label:\"a\" sort:filename.asc"));
+    }
+
+    /**
+     * `allintitle:` narrows the search to one field, which a whole-document chunk vector cannot
+     * express. Running without the narrowing would return exactly the content matches the user
+     * asked to exclude.
+     */
+    @Test
+    public void test_allInTitle() {
+        // QueryContext resolves the prefix against the configured title field, so this is the one
+        // case that reads FessConfig at all.
+        ComponentUtil.setFessConfig(new FessConfig.SimpleImpl() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public String getIndexFieldTitle() {
+                return "title";
+            }
+        });
+        try {
+            assertNull(new StubProcessorSplitter().split("allintitle:cat"));
+            assertNull(new StubProcessorSplitter().split("allintitle:cat label:\"x\""));
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
+    }
+
+    /** A query core itself cannot parse fails core's keyword branch too. */
+    @Test
+    public void test_unparseable() {
+        assertNull(new StubProcessorSplitter().split("cat ("));
+    }
+
+    /**
+     * A condition core converts to null carries a constraint that would be lost. Searching
+     * without it would return documents the user had excluded, so the whole query is refused.
+     */
+    @Test
+    public void test_conditionCoreCannotConvert() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        splitter.convertToNull = true;
+        assertNull(splitter.split("cat filetype:\"jpeg\""));
+    }
+
+    @Test
+    public void test_conditionCoreRejects() {
+        final StubProcessorSplitter splitter = new StubProcessorSplitter();
+        splitter.convertThrows = true;
+        assertNull(splitter.split("cat filetype:\"jpeg\""));
+    }
+
+    @Test
+    public void test_blank() {
+        assertNull(new StubProcessorSplitter().split(null));
+        assertNull(new StubProcessorSplitter().split(""));
+        assertNull(new StubProcessorSplitter().split("   "));
+    }
+
+    private List<QueryBuilder> filterClauses(final Split split) {
+        assertNotNull(split.conditionFilter);
+        return ((BoolQueryBuilder) split.conditionFilter).filter();
     }
 }

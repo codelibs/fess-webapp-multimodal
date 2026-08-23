@@ -15,10 +15,7 @@
  */
 package org.codelibs.fess.multimodal.rank.fusion;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -26,6 +23,9 @@ import org.codelibs.fess.entity.SearchRequestParams;
 import org.codelibs.fess.mylasta.action.FessUserBean;
 import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.codelibs.fess.multimodal.query.StructuredQuerySplitter;
+import org.codelibs.fess.multimodal.query.StructuredQuerySplitter.Split;
+import org.codelibs.fess.multimodal.query.StubProcessorSplitter;
 import org.codelibs.fess.util.ComponentUtil;
 import org.dbflute.optional.OptionalThing;
 import org.junit.jupiter.api.Test;
@@ -44,61 +44,72 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
     /** A query core would reject must be accepted once its conditions are splittable. */
     @Test
     public void test_isPlainQuery_acceptsSplittableConditions() {
-        final ClipChunkSearcher searcher = new ClipChunkSearcher();
+        final ClipChunkSearcher searcher = newSearcher();
         assertTrue(searcher.isPlainQuery("mountain sunset"));
-        assertTrue(searcher.isPlainQuery("mountain sunset filetype:jpeg"));
+        assertTrue(searcher.isPlainQuery("mountain sunset filetype:\"jpeg\""));
         assertTrue(searcher.isPlainQuery("cat (label:\"a\" OR label:\"b\")"));
+        // A range now splits too: core's QueryProcessor has a command for it, so the condition
+        // becomes a real filter instead of costing the branch.
+        assertTrue(searcher.isPlainQuery("cat timestamp:[now/d-1d TO *]"));
     }
 
     @Test
     public void test_isPlainQuery_rejectsRealSyntax() {
-        final ClipChunkSearcher searcher = new ClipChunkSearcher();
+        final ClipChunkSearcher searcher = newSearcher();
         assertFalse(searcher.isPlainQuery("\"mountain sunset\""));
-        assertFalse(searcher.isPlainQuery("cat AND dog"));
+        assertFalse(searcher.isPlainQuery("cat -dog"));
         assertFalse(searcher.isPlainQuery("cat sort:filename.asc"));
-        assertFalse(searcher.isPlainQuery("cat timestamp:[now/d-1d TO *]"));
+        assertFalse(searcher.isPlainQuery("cat ("));
+    }
+
+    /**
+     * The parser unescapes as it goes, so the free text of `10\:30 label:"x"` is `10:30` -- which
+     * on its own parses back as a field-qualified clause with no text at all. Core calls
+     * isPlainQuery with exactly that text right after search() forwards it, so without the split
+     * search() already made, the branch search() accepted would be dropped here.
+     */
+    @Test
+    public void test_isPlainQuery_trustsTheSplitSearchAlreadyMade() {
+        final ClipChunkSearcher searcher = newSearcher();
+        assertFalse(searcher.isPlainQuery("10:30"));
+        final Split split = searcher.getQuerySplitter().split("10\\:30 label:\"x\"");
+        assertNotNull(split);
+        assertEquals("10:30", split.text);
+        searcher.splitHolder.set(split);
+        try {
+            assertTrue(searcher.isPlainQuery(split.text));
+        } finally {
+            searcher.splitHolder.remove();
+        }
     }
 
     @Test
-    public void test_buildConditionFilter_singleValue() {
-        final Map<String, List<String>> conditions = new HashMap<>();
-        final List<String> values = new ArrayList<>();
-        values.add("jpeg");
-        conditions.put("filetype", values);
-
-        final QueryBuilder filter = new ClipChunkSearcher().buildConditionFilter(conditions);
-        assertNotNull(filter);
-        assertTrue(filter instanceof BoolQueryBuilder);
-        assertEquals(1, ((BoolQueryBuilder) filter).filter().size());
+    public void test_search_clearsSplitHolder() {
+        final RecordingSearcher searcher = new RecordingSearcher();
+        searcher.search("cat filetype:\"jpeg\"", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertNull(searcher.splitHolder.get());
     }
 
-    @Test
-    public void test_buildConditionFilter_multiValueBecomesOneClause() {
-        final Map<String, List<String>> conditions = new HashMap<>();
-        final List<String> values = new ArrayList<>();
-        values.add("a");
-        values.add("b");
-        conditions.put("label", values);
+    /** The splitter is the only collaborator that needs wiring; everything else is core's. */
+    private ClipChunkSearcher newSearcher() {
+        return new ClipChunkSearcher() {
+            private final StubProcessorSplitter splitter = new StubProcessorSplitter();
 
-        final BoolQueryBuilder filter = (BoolQueryBuilder) new ClipChunkSearcher().buildConditionFilter(conditions);
-        // One terms clause for the field, not one clause per value.
-        assertEquals(1, filter.filter().size());
-    }
-
-    @Test
-    public void test_buildConditionFilter_emptyReturnsNull() {
-        assertNull(new ClipChunkSearcher().buildConditionFilter(new HashMap<>()));
+            @Override
+            protected StructuredQuerySplitter getQuerySplitter() {
+                return splitter;
+            }
+        };
     }
 
     // ---- Safety property 1: conditions must reach BOTH the ann (buildKnnChunkQuery) and the
-    // exact (buildExactChunkQuery) query-building hooks. Testing this directly (rather than only
-    // through isPlainQuery/buildConditionFilter) is what actually pins the "a user's exclusion
-    // filter must not leak matching-but-excluded documents in either engine mode" contract. The
-    // condition is fed in via the same protected ThreadLocal field the real search() populates
-    // (see StructuredQuerySplitter-driven population in search()); reaching it directly here, in
-    // the same package, avoids having to stand up the full container that super.search() needs
-    // (embedding client manager, role/virtual-host helpers, a live search engine client) just to
-    // drive these two query builders.
+    // exact (buildExactChunkQuery) query-building hooks. Testing this directly is what actually
+    // pins the "a user's exclusion filter must not leak matching-but-excluded documents in either
+    // engine mode" contract. The condition is fed in via the same protected ThreadLocal field the
+    // real search() populates from the splitter; reaching it directly here, in the same package,
+    // avoids having to stand up the full container that super.search() needs (embedding client
+    // manager, role/virtual-host helpers, a live search engine client) just to drive these two
+    // query builders.
 
     @Test
     public void test_buildExactChunkQuery_withoutCondition_delegatesToSuper() {
@@ -246,31 +257,15 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
     @Test
     public void test_search_embedsOnlyFreeText_stripsConditions() {
         final RecordingSearcher searcher = new RecordingSearcher();
-        searcher.search("cat filetype:jpeg", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        searcher.search("cat filetype:\"jpeg\"", new StubSearchRequestParams(0, 10), OptionalThing.empty());
         assertEquals("cat", searcher.recordedQuery);
     }
 
     @Test
     public void test_search_unsplittableQuery_passesOriginalQueryThrough() {
         final RecordingSearcher searcher = new RecordingSearcher();
-        searcher.search("cat AND dog", new StubSearchRequestParams(0, 10), OptionalThing.empty());
-        assertEquals("cat AND dog", searcher.recordedQuery);
-    }
-
-    // C2 fix: non-empty conditions that fail to become a filter must fall back to the
-    // *original* query, never split.text (which would search unfiltered and silently drop the
-    // conditions). Unreachable via the real StructuredQuerySplitter (see the invariant note on
-    // its `conditions` map), so this drives it through a searcher whose buildConditionFilter is
-    // overridden to simulate the failure.
-    @Test
-    public void test_search_nonEmptyConditionsWithNoFilter_fallsBackToOriginalQuery() {
-        // Declared as RecordingSearcher (not the subtype) so recordedQuery -- private to
-        // RecordingSearcher and not inherited by the subclass per JLS 8.2 -- resolves normally.
-        final RecordingSearcher searcher = new NullConditionFilterRecordingSearcher();
-        searcher.search("cat filetype:jpeg", new StubSearchRequestParams(0, 10), OptionalThing.empty());
-        // The ORIGINAL query, not split.text ("cat"): core's own isPlainQuery then rejects it and
-        // skips the vector branch entirely, rather than searching "cat" with the condition lost.
-        assertEquals("cat filetype:jpeg", searcher.recordedQuery);
+        searcher.search("\"mountain sunset\"", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertEquals("\"mountain sunset\"", searcher.recordedQuery);
     }
 
     // C3: conditionFilterHolder must never leak into a later search on the same (pooled) thread.
@@ -280,8 +275,22 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
     @Test
     public void test_search_clearsConditionFilterHolder_afterConditionedQuery() {
         final RecordingSearcher searcher = new RecordingSearcher();
-        searcher.search("cat filetype:jpeg", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        searcher.search("cat filetype:\"jpeg\"", new StubSearchRequestParams(0, 10), OptionalThing.empty());
         assertNull(searcher.conditionFilterHolder.get());
+    }
+
+    /**
+     * The link between the two halves above: by the time the base runs, search() must already
+     * have both split the query and put the conditions where the query-building hooks read them.
+     * RecordingSearcher cannot show this -- it replaces isPlainQuery outright -- so this drives
+     * the real one and observes the holder from inside the same call.
+     */
+    @Test
+    public void test_search_populatesConditionHolderBeforeTheBaseRuns() {
+        final HolderObservingSearcher searcher = new HolderObservingSearcher();
+        searcher.search("cat filetype:\"jpeg\"", new StubSearchRequestParams(0, 10), OptionalThing.empty());
+        assertEquals(Boolean.TRUE, searcher.observedPlain);
+        assertNotNull(searcher.observedCondition);
     }
 
     @Test
@@ -292,11 +301,47 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
     }
 
     /**
+     * Calls the real {@link ClipChunkSearcher#isPlainQuery} and records what it answered and what
+     * was in the condition holder at that moment, then returns false so the base short-circuits
+     * before the embedding call.
+     */
+    private static class HolderObservingSearcher extends ClipChunkSearcher {
+        private Boolean observedPlain;
+        private QueryBuilder observedCondition;
+
+        private final StubProcessorSplitter splitter = new StubProcessorSplitter();
+
+        @Override
+        protected StructuredQuerySplitter getQuerySplitter() {
+            return splitter;
+        }
+
+        @Override
+        protected boolean isSearchEnabled() {
+            return true;
+        }
+
+        @Override
+        protected boolean isPlainQuery(final String query) {
+            observedPlain = super.isPlainQuery(query);
+            observedCondition = conditionFilterHolder.get();
+            return false;
+        }
+    }
+
+    /**
      * Records the exact string {@link ClipChunkSearcher#search} forwards to
      * {@code super.search(...)}, without needing a live container.
      */
     private static class RecordingSearcher extends ClipChunkSearcher {
         private String recordedQuery;
+
+        private final StubProcessorSplitter splitter = new StubProcessorSplitter();
+
+        @Override
+        protected StructuredQuerySplitter getQuerySplitter() {
+            return splitter;
+        }
 
         @Override
         protected boolean isSearchEnabled() {
@@ -314,18 +359,6 @@ public class ClipChunkSearcherTest extends UnitWebappTestCase {
             // false short-circuits SemanticChunkSearcher.search() into emptyResult() immediately
             // after this call, before params/userBean are ever dereferenced.
             return false;
-        }
-    }
-
-    /**
-     * Simulates a {@link ClipChunkSearcher#buildConditionFilter} that fails to turn non-empty
-     * conditions into a filter -- unreachable via the real {@code StructuredQuerySplitter}, but
-     * this pins {@link ClipChunkSearcher#search}'s fail-closed fallback for that seam (C2).
-     */
-    private static class NullConditionFilterRecordingSearcher extends RecordingSearcher {
-        @Override
-        protected QueryBuilder buildConditionFilter(final Map<String, List<String>> conditions) {
-            return null;
         }
     }
 
