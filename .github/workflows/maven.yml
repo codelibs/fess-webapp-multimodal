@@ -17,7 +17,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      PARENT_BRANCH: 15.8.x
+      PARENT_BRANCH: main
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 21
