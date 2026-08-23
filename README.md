@@ -15,15 +15,32 @@ Starting with Fess 15.8, content-chunk embedding (vector field, mapping, KNN que
 - **`EmbeddingIngester`** (`org.codelibs.fess.multimodal.ingest`) -- at index time, decodes the staged embedding and writes it into Fess core's nested **`content_chunk_vector`** field (subfield `vector`), then sets **`content_chunk_status=done`** on the document. That status is what keeps core's Content Chunk Vector Indexer job from ever touching image documents (see "Content Chunk Vector Indexer job" below).
 - **`ClipEmbeddingClient`** (`org.codelibs.fess.multimodal.embedding`) -- a core `EmbeddingClient` implementation (DI name `clipEmbeddingClient`, `getName()` returns `"clip"`) that embeds *query text* through the CLIP server's text tower, so a text query lands in the same vector space as the image embeddings above. Core's `EmbeddingClientManager` resolves it by taking `content_chunker.embedding.name` and appending `EmbeddingClient` as the component name.
 - **`ClipChunkSearcher`** (`org.codelibs.fess.multimodal.rank.fusion`) -- replaces core's `SemanticChunkSearcher` (DI component name `semanticChunkSearcher`). Its `searcher` provenance value is **`multi_modal`**, not `semantic_chunk` -- core's own logging and documentation refer to `semantic_chunk`, but on this plugin's deployment `multi_modal` is what actually appears in the `searcher` field of a result. See "Facets, labels, and sort" below for what it adds on top of core's searcher.
-- **`StructuredQuerySplitter`** (`org.codelibs.fess.multimodal.query`) -- a pure helper `ClipChunkSearcher` uses to split an assembled query string into free text plus structured conditions.
+- **`StructuredQuerySplitter`** (`org.codelibs.fess.multimodal.query`) -- splits an assembled query into free text plus structured conditions, using core's own `QueryParser` and `QueryProcessor` rather than pattern-matching the string.
 
 There is no plugin-owned vector field, no plugin-owned KNN query builder, and no plugin-owned index mapping/setting rewrite. All ten production classes are listed under `src/main/java/org/codelibs/fess/multimodal/`.
 
 ## Facets, labels, and sort
 
-Core's `SemanticChunkSearcher` refuses any query that contains search syntax, and a facet or label selection is folded into the query string as `label:"x"` -- so on a faceted UI the vector branch silently disappears the moment a filter is applied. `ClipChunkSearcher` recovers both halves: the free text is embedded on its own, and the recovered conditions are applied as real filters, in both the approximate-KNN mode and the exact (script-score) mode. Supported condition fields are `label`, `host`, `site`, `filetype`, `mimetype`, and `lang`.
+Core's `SemanticChunkSearcher` refuses any query that contains search syntax, and a facet or label selection is folded into the query string as `label:"x"` -- so on a faceted UI the vector branch silently disappears the moment a filter is applied. `ClipChunkSearcher` recovers both halves: the free text is embedded on its own, and the recovered conditions are applied as real filters, in both the approximate-KNN mode and the exact (script-score) mode.
 
-`sort=` is not one of those fields. A sort selection is embedded by core's `QueryStringBuilder` as a `sort:<field>` term, which `StructuredQuerySplitter` does not recognize, so the whole query is treated as non-splittable and the vector branch is skipped for that request -- the same as core's own behavior. This is deliberate: the vector branch cannot honor a user-requested sort order, so it steps aside rather than silently ignoring the sort.
+The split runs on core's parse tree. `StructuredQuerySplitter` hands the query string to core's `QueryParser`, keeps the bare terms on the default field as the text to embed, and hands every field-qualified clause back to core's `QueryProcessor`. A condition therefore becomes exactly the filter core's keyword branch would build for it -- a prefix query for `site:`, a wildcard on the url field for `inurl:`, a range for `timestamp:[..]`, a term or a match phrase depending on whether the field is analyzed. There is no allowlist of fields to keep in sync: a field added through `query.additional.search.fields` filters the vector branch the moment it filters the keyword branch.
+
+A query is left to core's own gate -- which skips the vector branch entirely -- when it cannot be split this way:
+
+| Query | Why |
+|---|---|
+| `sort:<field>` (what `sort=` becomes) | The vector branch is score-ordered; it cannot honor a sort, and interleaving score-ordered hits into a sorted result set makes the order meaningless. |
+| `allintitle:` / `allinurl:` | A chunk vector covers the document, not one field. |
+| `"a phrase"`, `cat*`, `cat^2` on the query text | Syntax on the text itself does not survive being turned into a vector. |
+| `-dog` on the query text | A term the user excluded cannot be expressed in an embedding. |
+| `cat OR label:"x"`, `+cat dog OR label:"x"` | An optional condition is not a filter: applying it would exclude documents the query says are merely less preferred. |
+| A query with conditions but no text of its own -- an empty search box plus a facet click | There is nothing to embed. Core skips a blank query for the same reason. |
+| A value core has no query command for, such as a regexp (`label:/foo.*/`) | Core's keyword branch turns it into an error page; the vector branch has nothing to add. |
+| Anything core's parser rejects | It fails core's keyword branch too. |
+
+A condition is never dropped to make a query splittable. Whenever one cannot be turned into a filter, the whole query is refused rather than searched without it -- searching without it would return documents the user had excluded. What the parser itself discards never reaches the splitter: `label:""` analyzes to no tokens and Lucene drops the clause, in this branch and in core's keyword branch alike, so the two still filter the same way.
+
+Two limits are inherited from core's own semantic branch rather than introduced here: a `QueryHelper` `additionalQuery` (a DI extension point, unset by default) is not applied to the vector branch, and the vector branch does not collapse duplicates when `result.collapsed` is on.
 
 ## Requirements
 
@@ -207,7 +224,7 @@ DI wiring (LastaDi) is under `src/main/resources/`:
 - Confirm `content_chunker.enabled=true` and `content_chunker.search.enabled=true`, and that Fess was **restarted** after setting the latter.
 - Confirm `content_chunker.embedding.dimension` matches your CLIP model's actual output size.
 - Check that the CLIP server is reachable: `curl http://localhost:51000/health` (or whatever `content_chunker.embedding.clip.api.url` points to).
-- A query using Fess search syntax (quotes, boolean operators, ranges, `sort=`) intentionally skips the vector branch.
+- Some queries intentionally skip the vector branch -- `sort=` (including a default sort configured in the admin console, which is appended to every query), `allintitle:`/`allinurl:`, a quoted phrase, a wildcard or boost on the query text, an excluded term, an OR-ed condition, and a facet click with an empty search box. "Facets, labels, and sort" above lists them all with the reason for each. Facets, labels and field conditions such as `filetype:` or `timestamp:[..]` alongside some query text do **not** skip it.
 
 **CLIP service connection failed**
 ```bash
