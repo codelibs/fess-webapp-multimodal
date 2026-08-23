@@ -15,9 +15,6 @@
  */
 package org.codelibs.fess.multimodal.rank.fusion;
 
-import java.util.List;
-import java.util.Map;
-
 import org.codelibs.fess.entity.SearchRequestParams;
 import org.codelibs.fess.multimodal.query.StructuredQuerySplitter;
 import org.codelibs.fess.multimodal.query.StructuredQuerySplitter.Split;
@@ -52,11 +49,26 @@ public class ClipChunkSearcher extends SemanticChunkSearcher {
     /** Conditions recovered from the current request's query string. */
     protected final ThreadLocal<QueryBuilder> conditionFilterHolder = new ThreadLocal<>();
 
+    /** The split of the current request's query, made once in {@link #search}. */
+    protected final ThreadLocal<Split> splitHolder = new ThreadLocal<>();
+
+    /** Splits the assembled query into the text to embed and the conditions to filter on. */
+    private final StructuredQuerySplitter querySplitter = new StructuredQuerySplitter();
+
     /**
      * Constructs a new ClipChunkSearcher instance.
      */
     public ClipChunkSearcher() {
         // Default constructor
+    }
+
+    /**
+     * Returns the splitter. Overridable so a test can supply one that does not need a container.
+     *
+     * @return the splitter
+     */
+    protected StructuredQuerySplitter getQuerySplitter() {
+        return querySplitter;
     }
 
     @Override
@@ -68,37 +80,34 @@ public class ClipChunkSearcher extends SemanticChunkSearcher {
 
     @Override
     protected boolean isPlainQuery(final String query) {
-        return StructuredQuerySplitter.split(query) != null;
+        if (splitHolder.get() != null) {
+            // The base calls this with the free text search() below just forwarded, so the answer
+            // is already known. Re-deriving it from the text alone can disagree: the parser
+            // unescapes as it goes, so the text of `10\:30 label:"x"` is `10:30`, which parses
+            // back as a field-qualified clause with no text of its own -- and the branch search()
+            // just accepted would be dropped here instead.
+            return true;
+        }
+        return getQuerySplitter().split(query) != null;
     }
 
     @Override
     protected SearchResult search(final String query, final SearchRequestParams params, final OptionalThing<FessUserBean> userBean) {
-        final Split split = StructuredQuerySplitter.split(query);
+        final Split split = getQuerySplitter().split(query);
         if (split == null) {
             // Not splittable: let the base apply its own gate, which will skip the branch.
             return super.search(query, params, userBean);
         }
-        if (split.conditions.isEmpty()) {
-            return super.search(split.text, params, userBean);
+        splitHolder.set(split);
+        if (split.conditionFilter != null) {
+            conditionFilterHolder.set(split.conditionFilter);
         }
-        final QueryBuilder conditionFilter = buildConditionFilter(split.conditions);
-        if (conditionFilter == null) {
-            // Non-empty conditions that failed to become a filter must never be silently dropped:
-            // searching split.text without them would let documents the user meant to exclude
-            // leak through the vector branch. Falling back to the original (unsplit) query
-            // instead routes it through core's own isPlainQuery gate, which then skips the
-            // vector branch entirely -- the safe side of this failure. Unreachable today
-            // (StructuredQuerySplitter never returns a non-empty conditions map that
-            // buildConditionFilter can't turn into a filter -- see the note there), but the two
-            // are independently testable classes, so this guards the seam between them.
-            return super.search(query, params, userBean);
-        }
-        conditionFilterHolder.set(conditionFilter);
         try {
             // Only the free text is passed on: the base embeds whatever string it receives,
             // and `label:"x"` in the embedded text is noise to the CLIP text encoder.
             return super.search(split.text, params, userBean);
         } finally {
+            splitHolder.remove();
             conditionFilterHolder.remove();
         }
     }
@@ -134,28 +143,5 @@ public class ClipChunkSearcher extends SemanticChunkSearcher {
         // The exact (full-scan) path takes no per-query filter, so the conditions have to
         // wrap it here. Both modes therefore constrain on the same clause set.
         return QueryBuilders.boolQuery().must(chunkQuery).filter(conditionFilter);
-    }
-
-    /**
-     * Turns the recovered conditions into a filter clause.
-     *
-     * @param conditions field name to values
-     * @return the filter, or {@code null} when there is nothing to filter on
-     */
-    protected QueryBuilder buildConditionFilter(final Map<String, List<String>> conditions) {
-        if (conditions == null || conditions.isEmpty()) {
-            return null;
-        }
-        final BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-        for (final Map.Entry<String, List<String>> entry : conditions.entrySet()) {
-            final List<String> values = entry.getValue();
-            if (values == null || values.isEmpty()) {
-                continue;
-            }
-            // One terms clause per field: values within a field are OR, fields are AND --
-            // the same semantics QueryStringBuilder gives them on the keyword branch.
-            boolQuery.filter(QueryBuilders.termsQuery(entry.getKey(), values));
-        }
-        return boolQuery.hasClauses() ? boolQuery : null;
     }
 }
