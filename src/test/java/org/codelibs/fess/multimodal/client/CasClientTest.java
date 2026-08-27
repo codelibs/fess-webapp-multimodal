@@ -17,76 +17,138 @@ package org.codelibs.fess.multimodal.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 import org.codelibs.core.io.ResourceUtil;
 import org.codelibs.curl.CurlException;
 import org.codelibs.fess.multimodal.crawler.extractor.CasExtractorTest;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
+import org.codelibs.fess.multimodal.MultiModalConstants;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.codelibs.fess.mylasta.direction.FessConfig;
+import org.codelibs.fess.util.ComponentUtil;
 import org.junit.jupiter.api.Test;
+
+import com.sun.net.httpserver.HttpServer;
 
 public class CasClientTest extends UnitWebappTestCase {
     static final Logger logger = Logger.getLogger(CasExtractorTest.class.getName());
 
+    private void setUpDefaultMockConfig() {
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                return defaultValue;
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+    }
+
+    private void tearDownMockConfig() {
+        ComponentUtil.setFessConfig(null);
+    }
+
     @Test
     public void test_encodeImage() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
-        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            final String data = client.encodeImage(in);
-            assertEquals(70804, data.length());
-            // FileUtil.writeBytes("test.png", Base64.getDecoder().decode(data));
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+                final String data = client.encodeImage(in);
+                assertEquals(70804, data.length());
+                // FileUtil.writeBytes("test.png", Base64.getDecoder().decode(data));
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_getImageEmbedding() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
-        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            final float[] embedding = client.getImageEmbedding(in);
-            assertEquals(512, embedding.length);
-        } catch (final CurlException e) {
-            logger.warning(e.getMessage());
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+                final float[] embedding = client.getImageEmbedding(in);
+                assertEquals(512, embedding.length);
+            } catch (final CurlException e) {
+                logger.warning(e.getMessage());
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_getTextEmbedding() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
+        setUpDefaultMockConfig();
         try {
-            final float[] embedding = client.getTextEmbedding("running dogs");
-            assertEquals(512, embedding.length);
-        } catch (final CurlException e) {
-            logger.warning(e.getMessage());
+            final CasClient client = new CasClient();
+            client.init();
+            try {
+                final float[] embedding = client.getTextEmbedding("running dogs");
+                assertEquals(512, embedding.length);
+            } catch (final CurlException e) {
+                logger.warning(e.getMessage());
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_init_setsDefaultValues() {
-        final CasClient client = new CasClient();
-        client.init();
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                // Return defaultValue to force use of defaults
+                return defaultValue;
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+        try {
+            final CasClient client = new CasClient();
+            client.init();
 
-        assertEquals(224, client.imageWidth);
-        assertEquals(224, client.imageHeight);
-        assertEquals(3000, client.maxImageWidth);
-        assertEquals(2000, client.maxImageHeight);
-        assertEquals("png", client.imageFormat);
-        assertEquals("http://localhost:51000", client.clipEndpoint);
+            assertEquals(224, client.imageWidth);
+            assertEquals(224, client.imageHeight);
+            assertEquals(3000, client.maxImageWidth);
+            assertEquals(2000, client.maxImageHeight);
+            assertEquals("png", client.imageFormat);
+            assertEquals("http://localhost:51000", client.clipEndpoint);
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
     }
 
     @Test
     public void test_init_readsSystemProperties() {
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                if (MultiModalConstants.CLIP_IMAGE_WIDTH.equals(key)) {
+                    return "512";
+                } else if (MultiModalConstants.CLIP_IMAGE_HEIGHT.equals(key)) {
+                    return "512";
+                } else if (MultiModalConstants.CLIP_IMAGE_MAX_WIDTH.equals(key)) {
+                    return "5000";
+                } else if (MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT.equals(key)) {
+                    return "4000";
+                } else if (MultiModalConstants.CLIP_IMAGE_FORMAT.equals(key)) {
+                    return "jpg";
+                } else if (MultiModalConstants.CLIP_API_URL.equals(key)) {
+                    return "http://localhost:8080";
+                }
+                return defaultValue;
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
         try {
-            System.setProperty("clip.image.width", "512");
-            System.setProperty("clip.image.height", "512");
-            System.setProperty("clip.image.max_width", "5000");
-            System.setProperty("clip.image.max_height", "4000");
-            System.setProperty("clip.image.format", "jpg");
-            System.setProperty("clip.server.endpoint", "http://localhost:8080");
-
             final CasClient client = new CasClient();
             client.init();
 
@@ -97,146 +159,301 @@ public class CasClientTest extends UnitWebappTestCase {
             assertEquals("jpg", client.imageFormat);
             assertEquals("http://localhost:8080", client.clipEndpoint);
         } finally {
-            System.clearProperty("clip.image.width");
-            System.clearProperty("clip.image.height");
-            System.clearProperty("clip.image.max_width");
-            System.clearProperty("clip.image.max_height");
-            System.clearProperty("clip.image.format");
-            System.clearProperty("clip.server.endpoint");
+            ComponentUtil.setFessConfig(null);
         }
     }
 
     @Test
     public void test_encodeImage_nullInputStream_throwsException() {
-        final CasClient client = new CasClient();
-        client.init();
-
+        setUpDefaultMockConfig();
         try {
-            client.encodeImage(null);
-            fail("Expected exception for null input stream");
-        } catch (final IllegalArgumentException e) {
-            // Expected - ImageIO.createImageInputStream throws IllegalArgumentException for null
-            assertTrue(e.getMessage().contains("input == null"));
-        } catch (final CasAccessException e) {
-            // Also acceptable if wrapped in CasAccessException
-            assertTrue(e.getMessage().contains("Failed to read an image") || e.getMessage().contains("No image"));
+            final CasClient client = new CasClient();
+            client.init();
+
+            try {
+                client.encodeImage(null);
+                fail("Expected exception for null input stream");
+            } catch (final IllegalArgumentException e) {
+                // Expected - ImageIO.createImageInputStream throws IllegalArgumentException for null
+                assertTrue(e.getMessage().contains("input == null"));
+            } catch (final CasAccessException e) {
+                // Also acceptable if wrapped in CasAccessException
+                assertTrue(e.getMessage().contains("Failed to read an image") || e.getMessage().contains("No image"));
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_encodeImage_emptyInputStream_throwsException() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
 
-        try (InputStream in = new ByteArrayInputStream(new byte[0])) {
-            client.encodeImage(in);
-            fail("Expected CasAccessException for empty input stream");
-        } catch (final CasAccessException e) {
-            // Expected
-            assertTrue(e.getMessage().contains("No image") || e.getMessage().contains("Failed to read"));
+            try (InputStream in = new ByteArrayInputStream(new byte[0])) {
+                client.encodeImage(in);
+                fail("Expected CasAccessException for empty input stream");
+            } catch (final CasAccessException e) {
+                // Expected
+                assertTrue(e.getMessage().contains("No image") || e.getMessage().contains("Failed to read"));
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_encodeImage_invalidImageData_throwsException() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
 
-        try (InputStream in = new ByteArrayInputStream("not an image".getBytes())) {
-            client.encodeImage(in);
-            fail("Expected CasAccessException for invalid image data");
-        } catch (final CasAccessException e) {
-            // Expected
-            assertTrue(e.getMessage().contains("No image") || e.getMessage().contains("Failed to read"));
+            try (InputStream in = new ByteArrayInputStream("not an image".getBytes())) {
+                client.encodeImage(in);
+                fail("Expected CasAccessException for invalid image data");
+            } catch (final CasAccessException e) {
+                // Expected
+                assertTrue(e.getMessage().contains("No image") || e.getMessage().contains("Failed to read"));
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_encodeImage_imageTooLarge_throwsException() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
-        client.maxImageWidth = 100;
-        client.maxImageHeight = 100;
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            client.maxImageWidth = 100;
+            client.maxImageHeight = 100;
 
-        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            client.encodeImage(in);
-            fail("Expected CasAccessException for image too large");
-        } catch (final CasAccessException e) {
-            // Expected
-            assertTrue(e.getMessage().contains("Invalid image size"));
+            try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+                client.encodeImage(in);
+                fail("Expected CasAccessException for image too large");
+            } catch (final CasAccessException e) {
+                // Expected
+                assertTrue(e.getMessage().contains("Invalid image size"));
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_encodeImage_differentAspectRatios() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
 
-        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            final String data = client.encodeImage(in);
-            assertNotNull(data);
-            assertTrue(data.length() > 0);
+            try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+                final String data = client.encodeImage(in);
+                assertNotNull(data);
+                assertTrue(data.length() > 0);
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_getTextEmbedding_emptyString_handlesGracefully() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
-
+        setUpDefaultMockConfig();
         try {
-            final float[] embedding = client.getTextEmbedding("");
-            assertNotNull(embedding);
-        } catch (final CurlException e) {
-            logger.warning(e.getMessage());
+            final CasClient client = new CasClient();
+            client.init();
+
+            try {
+                final float[] embedding = client.getTextEmbedding("");
+                assertNotNull(embedding);
+            } catch (final CurlException e) {
+                logger.warning(e.getMessage());
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_getTextEmbedding_longText_handlesGracefully() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
-
-        final StringBuilder longText = new StringBuilder();
-        for (int i = 0; i < 1000; i++) {
-            longText.append("word ");
-        }
-
+        setUpDefaultMockConfig();
         try {
-            final float[] embedding = client.getTextEmbedding(longText.toString());
-            assertNotNull(embedding);
-        } catch (final CurlException e) {
-            logger.warning(e.getMessage());
+            final CasClient client = new CasClient();
+            client.init();
+
+            final StringBuilder longText = new StringBuilder();
+            for (int i = 0; i < 1000; i++) {
+                longText.append("word ");
+            }
+
+            try {
+                final float[] embedding = client.getTextEmbedding(longText.toString());
+                assertNotNull(embedding);
+            } catch (final CurlException e) {
+                logger.warning(e.getMessage());
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_getTextEmbedding_specialCharacters_handlesGracefully() throws Exception {
-        final CasClient client = new CasClient();
-        client.init();
-
+        setUpDefaultMockConfig();
         try {
-            final float[] embedding = client.getTextEmbedding("日本語のテキスト \"quoted\" <html>");
-            assertNotNull(embedding);
-        } catch (final CurlException e) {
-            logger.warning(e.getMessage());
+            final CasClient client = new CasClient();
+            client.init();
+
+            try {
+                final float[] embedding = client.getTextEmbedding("日本語のテキスト \"quoted\" <html>");
+                assertNotNull(embedding);
+            } catch (final CurlException e) {
+                logger.warning(e.getMessage());
+            }
+        } finally {
+            tearDownMockConfig();
         }
     }
 
     @Test
     public void test_sendImage_validBase64_returnsEmbedding() {
-        final CasClient client = new CasClient();
-        client.init();
+        setUpDefaultMockConfig();
+        try {
+            final CasClient client = new CasClient();
+            client.init();
 
-        try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
-            final String encodedImage = client.encodeImage(in);
-            final float[] embedding = client.sendImage(encodedImage);
-            assertNotNull(embedding);
-            assertTrue(embedding.length > 0);
-        } catch (final CurlException e) {
-            logger.warning(e.getMessage());
-        } catch (final Exception e) {
-            logger.warning(e.getMessage());
+            try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
+                final String encodedImage = client.encodeImage(in);
+                final float[] embedding = client.sendImage(encodedImage);
+                assertNotNull(embedding);
+                assertTrue(embedding.length > 0);
+            } catch (final CurlException e) {
+                logger.warning(e.getMessage());
+            } catch (final Exception e) {
+                logger.warning(e.getMessage());
+            }
+        } finally {
+            tearDownMockConfig();
+        }
+    }
+
+    @Test
+    public void test_sendImage_non2xxStatus_throwsCasAccessException() throws Exception {
+        final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext(CasProtocol.POST_PATH, exchange -> {
+                final byte[] body = "{\"message\":\"internal error\"}".getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(500, body.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(body);
+                }
+            });
+            server.start();
+
+            setUpDefaultMockConfig();
+            try {
+                final CasClient client = new CasClient();
+                client.init();
+                client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+
+                try {
+                    client.sendImage("QUJD");
+                    fail("CasAccessException is expected.");
+                } catch (final CasAccessException e) {
+                    assertTrue("message should mention the HTTP status", e.getMessage().contains("500"));
+                }
+            } finally {
+                tearDownMockConfig();
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void test_sendImage_2xxStatus_returnsParsedEmbedding() throws Exception {
+        final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext(CasProtocol.POST_PATH, exchange -> {
+                final byte[] body = "{\"data\":[{\"embedding\":[0.5,1.5,-2.0]}]}".getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, body.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(body);
+                }
+            });
+            server.start();
+
+            setUpDefaultMockConfig();
+            try {
+                final CasClient client = new CasClient();
+                client.init();
+                client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+
+                final float[] embedding = client.sendImage("QUJD");
+                assertEquals(3, embedding.length);
+                assertEquals(0.5f, embedding[0]);
+                assertEquals(1.5f, embedding[1]);
+                assertEquals(-2.0f, embedding[2]);
+            } finally {
+                tearDownMockConfig();
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void test_init_readsSystemPropertyChannel() {
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                if (MultiModalConstants.CLIP_API_URL.equals(key)) {
+                    return "http://clip.example.com:51000";
+                } else if (MultiModalConstants.CLIP_IMAGE_WIDTH.equals(key)) {
+                    return "336";
+                }
+                return defaultValue;
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            assertEquals("http://clip.example.com:51000", client.getClipEndpoint());
+            assertEquals(336, client.imageWidth);
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
+    }
+
+    @Test
+    public void test_init_defaults() {
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                // Return defaultValue to force use of defaults
+                return defaultValue;
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            assertEquals("http://localhost:51000", client.getClipEndpoint());
+            assertEquals(224, client.imageWidth);
+            assertEquals(224, client.imageHeight);
+            assertEquals(3000, client.maxImageWidth);
+            assertEquals(2000, client.maxImageHeight);
+            assertEquals("png", client.imageFormat);
+        } finally {
+            ComponentUtil.setFessConfig(null);
         }
     }
 }

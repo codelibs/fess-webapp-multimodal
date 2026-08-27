@@ -57,6 +57,30 @@ public class MultiModalConstants {
     /** Component name for the multimodal search helper. */
     public static final String HELPER = "multiModalSearchHelper";
 
+    /** Config prefix owned by the CLIP embedding client, per AbstractEmbeddingClient#getConfigPrefix(). */
+    public static final String CLIP_CONFIG_PREFIX = "content_chunker.embedding.clip";
+
+    /** System property key for the CLIP server base URL. */
+    public static final String CLIP_API_URL = CLIP_CONFIG_PREFIX + ".api.url";
+
+    /** System property key for the target image width sent to the CLIP server. */
+    public static final String CLIP_IMAGE_WIDTH = CLIP_CONFIG_PREFIX + ".image.width";
+
+    /** System property key for the target image height sent to the CLIP server. */
+    public static final String CLIP_IMAGE_HEIGHT = CLIP_CONFIG_PREFIX + ".image.height";
+
+    /** System property key for the maximum accepted source image width. */
+    public static final String CLIP_IMAGE_MAX_WIDTH = CLIP_CONFIG_PREFIX + ".image.max_width";
+
+    /** System property key for the maximum accepted source image height. */
+    public static final String CLIP_IMAGE_MAX_HEIGHT = CLIP_CONFIG_PREFIX + ".image.max_height";
+
+    /** System property key for the image encoding format. */
+    public static final String CLIP_IMAGE_FORMAT = CLIP_CONFIG_PREFIX + ".image.format";
+
+    /** Default CLIP server base URL. */
+    public static final String DEFAULT_CLIP_API_URL = "http://localhost:51000";
+
     private MultiModalConstants() {
         // nothing
     }
