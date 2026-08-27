@@ -15,9 +15,10 @@
  */
 package org.codelibs.fess.multimodal.query;
 
-import static org.codelibs.fess.multimodal.MultiModalConstants.CAS_CLIENT;
+import java.util.Collections;
+import java.util.List;
 
-import org.codelibs.fess.multimodal.client.CasClient;
+import org.codelibs.fess.multimodal.embedding.ClipEmbeddingClient;
 import org.codelibs.fess.multimodal.index.query.KNNQueryBuilder;
 import org.codelibs.fess.util.ComponentUtil;
 import org.opensearch.index.query.QueryBuilder;
@@ -119,14 +120,14 @@ public class MultiModalQueryBuilder {
 
     /**
      * Converts this multimodal query to an OpenSearch QueryBuilder.
-     * Generates text embeddings using the CAS client and creates a KNN query.
+     * Generates text embeddings using the CLIP embedding client and creates a KNN query.
      *
      * @return the QueryBuilder for execution
      */
     public QueryBuilder toQueryBuilder() {
-        final CasClient client = ComponentUtil.getComponent(CAS_CLIENT);
-        final float[] embedding = client.getTextEmbedding(query);
-        return new KNNQueryBuilder.Builder().field(field).vector(embedding).minScore(minScore).k(k).build();
+        final ClipEmbeddingClient client = ComponentUtil.getComponent(ClipEmbeddingClient.class);
+        final List<float[]> embeddings = client.embedQuery(Collections.singletonList(query));
+        return new KNNQueryBuilder.Builder().field(field).vector(embeddings.get(0)).minScore(minScore).k(k).build();
     }
 
 }

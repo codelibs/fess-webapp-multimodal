@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -32,7 +31,6 @@ import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codelibs.core.lang.StringUtil;
@@ -172,7 +170,18 @@ public class CasClient {
             if (httpStatusCode < 200 || httpStatusCode >= 300) {
                 throw new CasAccessException("Clip server returned HTTP " + httpStatusCode);
             }
-            return CasProtocol.parseEmbedding(response.getContent(PARSER));
+            final Map<String, Object> contentMap;
+            try {
+                contentMap = response.getContent(PARSER);
+            } catch (final CurlException e) {
+                // PARSER wraps a malformed response body in a CurlException, which is a
+                // RuntimeException, not an IOException -- without this it would escape
+                // unwrapped instead of surfacing as a CasAccessException. Scoped to just this
+                // call so a CurlException thrown by execute() above (e.g. no CLIP server
+                // listening) keeps propagating unwrapped, as callers already expect.
+                throw new CasAccessException("Clip server failed to generate an embedding.", e);
+            }
+            return CasProtocol.parseEmbedding(contentMap);
         } catch (final IOException e) {
             throw new CasAccessException("Clip server failed to generate an embedding.", e);
         }
@@ -234,33 +243,5 @@ public class CasClient {
         } catch (final IOException e) {
             throw new CasAccessException("Failed to read an image.", e);
         }
-    }
-
-    /**
-     * Generates an embedding vector for the given text query.
-     *
-     * @param query text string to generate embedding for
-     * @return float array representing the text embedding
-     * @throws CasAccessException if the embedding generation fails
-     */
-    public float[] getTextEmbedding(final String query) {
-        final String body = "{\"data\":[{\"text\":\"" + StringEscapeUtils.escapeJson(query) + "\"}],\"execEndpoint\":\"/\"}";
-        logger.debug("request body: {}", body);
-        try (CurlResponse response = Curl.post(clipEndpoint + "/post").header("Content-Type", "application/json").body(body).execute()) {
-            final Map<String, Object> contentMap = response.getContent(PARSER);
-            if (((contentMap.get("data") instanceof final List dataList)
-                    && (!dataList.isEmpty() && dataList.get(0) instanceof final Map data))
-                    && (data.get("embedding") instanceof final List embeddingList)) {
-                logger.debug("embedding: {}", embeddingList);
-                final float[] embedding = new float[embeddingList.size()];
-                for (int i = 0; i < embedding.length; i++) {
-                    embedding[i] = ((Number) embeddingList.get(i)).floatValue();
-                }
-                return embedding;
-            }
-        } catch (final IOException e) {
-            throw new CasAccessException("Clip server failed to generate an embedding.", e);
-        }
-        throw new CasAccessException("Clip server cannot generate an embedding");
     }
 }
