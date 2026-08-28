@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE components PUBLIC "-//DBFLUTE//DTD LastaDi 1.0//EN"
+	"http://dbflute.org/meta/lastadi10.dtd">
+<components>
+	<!-- Replaces core's semanticChunkSearcher (fess_rankfusion.xml) with the CLIP
+	     variant. Only one vector searcher is registered on this deployment: the
+	     multimodal one IS the semantic one here. -->
+	<component name="semanticChunkSearcher"
+		class="org.codelibs.fess.multimodal.rank.fusion.ClipChunkSearcher">
+		<postConstruct name="register"></postConstruct>
+	</component>
+</components>

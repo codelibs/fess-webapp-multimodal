@@ -140,5 +140,11 @@
 			<version>${utflute.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<version>${jakarta.servlet.api.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

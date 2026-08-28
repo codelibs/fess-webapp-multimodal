@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -32,13 +31,16 @@ import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.codelibs.core.lang.StringUtil;
 import org.codelibs.curl.Curl;
 import org.codelibs.curl.CurlException;
 import org.codelibs.curl.CurlResponse;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
+import org.codelibs.fess.multimodal.MultiModalConstants;
+import org.codelibs.fess.mylasta.direction.FessConfig;
+import org.codelibs.fess.util.ComponentUtil;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -92,15 +94,48 @@ public class CasClient {
      */
     @PostConstruct
     public void init() {
-        imageWidth = Integer.getInteger("clip.image.width", 224);
-        imageHeight = Integer.getInteger("clip.image.height", 224);
-        maxImageWidth = Integer.getInteger("clip.image.max_width", 3000);
-        maxImageHeight = Integer.getInteger("clip.image.max_height", 2000);
-        imageFormat = System.getProperty("clip.image.format", "png");
-        clipEndpoint = System.getProperty("clip.server.endpoint", "http://localhost:51000");
+        final FessConfig fessConfig = ComponentUtil.getFessConfig();
+        imageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_WIDTH, 224);
+        imageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_HEIGHT, 224);
+        maxImageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_WIDTH, 3000);
+        maxImageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT, 2000);
+        imageFormat = fessConfig.getSystemProperty(MultiModalConstants.CLIP_IMAGE_FORMAT, "png");
+        clipEndpoint = fessConfig.getSystemProperty(MultiModalConstants.CLIP_API_URL, MultiModalConstants.DEFAULT_CLIP_API_URL);
 
-        logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", imageWidth, imageHeight, maxImageWidth, maxImageHeight,
-                imageFormat, clipEndpoint);
+        if (logger.isDebugEnabled()) {
+            logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", imageWidth, imageHeight, maxImageWidth, maxImageHeight,
+                    imageFormat, clipEndpoint);
+        }
+    }
+
+    /**
+     * Reads an int system property, falling back to the default when unset or unparsable.
+     *
+     * @param fessConfig the config accessor
+     * @param key the system property key
+     * @param defaultValue the fallback
+     * @return the resolved value
+     */
+    protected int getIntProperty(final FessConfig fessConfig, final String key, final int defaultValue) {
+        final String value = fessConfig.getSystemProperty(key, null);
+        if (StringUtil.isBlank(value)) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (final NumberFormatException e) {
+            logger.warn("Invalid {} value: {}. Using {}.", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Returns the configured CLIP server base URL.
+     *
+     * @return the base URL
+     */
+    public String getClipEndpoint() {
+        return clipEndpoint;
     }
 
     /**
@@ -122,24 +157,34 @@ public class CasClient {
      * @throws CasAccessException if the server communication fails
      */
     protected float[] sendImage(final String encodedImage) {
-        final String body = "{\"data\":[{\"blob\":\"" + StringEscapeUtils.escapeJson(encodedImage) + "\"}],\"execEndpoint\":\"/\"}";
-        logger.debug("request body: {}", body);
-        try (CurlResponse response = Curl.post(clipEndpoint + "/post").header("Content-Type", "application/json").body(body).execute()) {
-            final Map<String, Object> contentMap = response.getContent(PARSER);
-            if (((contentMap.get("data") instanceof final List dataList)
-                    && (!dataList.isEmpty() && dataList.get(0) instanceof final Map data))
-                    && (data.get("embedding") instanceof final List embeddingList)) {
-                logger.debug("embedding: {}", embeddingList);
-                final float[] embedding = new float[embeddingList.size()];
-                for (int i = 0; i < embedding.length; i++) {
-                    embedding[i] = ((Number) embeddingList.get(i)).floatValue();
-                }
-                return embedding;
+        final String body = CasProtocol.buildBlobRequest(encodedImage);
+        if (logger.isDebugEnabled()) {
+            logger.debug("request body length: {}", body.length());
+        }
+        try (CurlResponse response =
+                Curl.post(clipEndpoint + CasProtocol.POST_PATH).header("Content-Type", "application/json").body(body).execute()) {
+            // curl4j does not throw on a non-2xx response, so the status has to be checked
+            // explicitly -- otherwise an error page is parsed as an empty embedding and the
+            // document is indexed silently vectorless.
+            final int httpStatusCode = response.getHttpStatusCode();
+            if (httpStatusCode < 200 || httpStatusCode >= 300) {
+                throw new CasAccessException("Clip server returned HTTP " + httpStatusCode);
             }
+            final Map<String, Object> contentMap;
+            try {
+                contentMap = response.getContent(PARSER);
+            } catch (final CurlException e) {
+                // PARSER wraps a malformed response body in a CurlException, which is a
+                // RuntimeException, not an IOException -- without this it would escape
+                // unwrapped instead of surfacing as a CasAccessException. Scoped to just this
+                // call so a CurlException thrown by execute() above (e.g. no CLIP server
+                // listening) keeps propagating unwrapped, as callers already expect.
+                throw new CasAccessException("Clip server failed to generate an embedding.", e);
+            }
+            return CasProtocol.parseEmbedding(contentMap);
         } catch (final IOException e) {
             throw new CasAccessException("Clip server failed to generate an embedding.", e);
         }
-        throw new CasAccessException("Clip server cannot generate an embedding");
     }
 
     /**
@@ -198,33 +243,5 @@ public class CasClient {
         } catch (final IOException e) {
             throw new CasAccessException("Failed to read an image.", e);
         }
-    }
-
-    /**
-     * Generates an embedding vector for the given text query.
-     *
-     * @param query text string to generate embedding for
-     * @return float array representing the text embedding
-     * @throws CasAccessException if the embedding generation fails
-     */
-    public float[] getTextEmbedding(final String query) {
-        final String body = "{\"data\":[{\"text\":\"" + StringEscapeUtils.escapeJson(query) + "\"}],\"execEndpoint\":\"/\"}";
-        logger.debug("request body: {}", body);
-        try (CurlResponse response = Curl.post(clipEndpoint + "/post").header("Content-Type", "application/json").body(body).execute()) {
-            final Map<String, Object> contentMap = response.getContent(PARSER);
-            if (((contentMap.get("data") instanceof final List dataList)
-                    && (!dataList.isEmpty() && dataList.get(0) instanceof final Map data))
-                    && (data.get("embedding") instanceof final List embeddingList)) {
-                logger.debug("embedding: {}", embeddingList);
-                final float[] embedding = new float[embeddingList.size()];
-                for (int i = 0; i < embedding.length; i++) {
-                    embedding[i] = ((Number) embeddingList.get(i)).floatValue();
-                }
-                return embedding;
-            }
-        } catch (final IOException e) {
-            throw new CasAccessException("Clip server failed to generate an embedding.", e);
-        }
-        throw new CasAccessException("Clip server cannot generate an embedding");
     }
 }

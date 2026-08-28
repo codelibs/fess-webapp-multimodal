@@ -31,6 +31,8 @@ import org.codelibs.fess.multimodal.client.CasClient;
 import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.codelibs.fess.multimodal.util.EmbeddingUtil;
 import org.codelibs.fess.multimodal.UnitWebappTestCase;
+import org.codelibs.fess.mylasta.direction.FessConfig;
+import org.codelibs.fess.util.ComponentUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
@@ -47,6 +49,15 @@ public class CasExtractorTest extends UnitWebappTestCase {
     protected void setUp(TestInfo testInfo) throws Exception {
         super.setUp(testInfo);
 
+        // Set up a mock FessConfig before creating CasClient, as its @PostConstruct init() calls ComponentUtil.getFessConfig()
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                return defaultValue;
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+
         final StandardCrawlerContainer container = new StandardCrawlerContainer();
         container//
                 .singleton("mimeTypeHelper", MimeTypeHelperImpl.class)//
@@ -61,6 +72,12 @@ public class CasExtractorTest extends UnitWebappTestCase {
 
         casExtractor = container.getComponent("casExtractor");
         casExtractor.init();
+    }
+
+    @Override
+    protected void tearDown(TestInfo testInfo) throws Exception {
+        ComponentUtil.setFessConfig(null);
+        super.tearDown(testInfo);
     }
 
     @Test
