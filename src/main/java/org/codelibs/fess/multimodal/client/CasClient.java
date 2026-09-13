@@ -41,9 +41,9 @@ import org.codelibs.fess.multimodal.exception.CasAccessException;
 import org.codelibs.fess.multimodal.MultiModalConstants;
 import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.util.ComponentUtil;
-import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.codelibs.fesen.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.codelibs.fesen.opensearch.common.xcontent.json.JsonXContent;
+import org.codelibs.fesen.opensearch.core.xcontent.NamedXContentRegistry;
 
 import jakarta.annotation.PostConstruct;
 
