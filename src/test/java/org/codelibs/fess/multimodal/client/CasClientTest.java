@@ -98,12 +98,12 @@ public class CasClientTest extends UnitWebappTestCase {
             final CasClient client = new CasClient();
             client.init();
 
-            assertEquals(224, client.imageWidth);
-            assertEquals(224, client.imageHeight);
-            assertEquals(3000, client.maxImageWidth);
-            assertEquals(2000, client.maxImageHeight);
-            assertEquals("png", client.imageFormat);
-            assertEquals("http://localhost:51000", client.clipEndpoint);
+            assertEquals(224, client.getImageWidth());
+            assertEquals(224, client.getImageHeight());
+            assertEquals(3000, client.getMaxImageWidth());
+            assertEquals(2000, client.getMaxImageHeight());
+            assertEquals("png", client.getImageFormat());
+            assertEquals("http://localhost:51000", client.getClipEndpoint());
         } finally {
             ComponentUtil.setFessConfig(null);
         }
@@ -135,12 +135,12 @@ public class CasClientTest extends UnitWebappTestCase {
             final CasClient client = new CasClient();
             client.init();
 
-            assertEquals(512, client.imageWidth);
-            assertEquals(512, client.imageHeight);
-            assertEquals(5000, client.maxImageWidth);
-            assertEquals(4000, client.maxImageHeight);
-            assertEquals("jpg", client.imageFormat);
-            assertEquals("http://localhost:8080", client.clipEndpoint);
+            assertEquals(512, client.getImageWidth());
+            assertEquals(512, client.getImageHeight());
+            assertEquals(5000, client.getMaxImageWidth());
+            assertEquals(4000, client.getMaxImageHeight());
+            assertEquals("jpg", client.getImageFormat());
+            assertEquals("http://localhost:8080", client.getClipEndpoint());
         } finally {
             ComponentUtil.setFessConfig(null);
         }
@@ -210,10 +210,18 @@ public class CasClientTest extends UnitWebappTestCase {
     public void test_encodeImage_imageTooLarge_throwsException() throws Exception {
         setUpDefaultMockConfig();
         try {
-            final CasClient client = new CasClient();
+            final CasClient client = new CasClient() {
+                @Override
+                protected int getMaxImageWidth() {
+                    return 100;
+                }
+
+                @Override
+                protected int getMaxImageHeight() {
+                    return 100;
+                }
+            };
             client.init();
-            client.maxImageWidth = 100;
-            client.maxImageHeight = 100;
 
             try (InputStream in = ResourceUtil.getResourceAsStream("images/codelibs_cover.jpeg")) {
                 client.encodeImage(in);
@@ -282,9 +290,13 @@ public class CasClientTest extends UnitWebappTestCase {
 
             setUpDefaultMockConfig();
             try {
-                final CasClient client = new CasClient();
+                final CasClient client = new CasClient() {
+                    @Override
+                    public String getClipEndpoint() {
+                        return "http://127.0.0.1:" + server.getAddress().getPort();
+                    }
+                };
                 client.init();
-                client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
 
                 try {
                     client.sendImage("QUJD");
@@ -316,9 +328,13 @@ public class CasClientTest extends UnitWebappTestCase {
 
             setUpDefaultMockConfig();
             try {
-                final CasClient client = new CasClient();
+                final CasClient client = new CasClient() {
+                    @Override
+                    public String getClipEndpoint() {
+                        return "http://127.0.0.1:" + server.getAddress().getPort();
+                    }
+                };
                 client.init();
-                client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
 
                 final float[] embedding = client.sendImage("QUJD");
                 assertEquals(3, embedding.length);
@@ -353,9 +369,13 @@ public class CasClientTest extends UnitWebappTestCase {
 
             setUpDefaultMockConfig();
             try {
-                final CasClient client = new CasClient();
+                final CasClient client = new CasClient() {
+                    @Override
+                    public String getClipEndpoint() {
+                        return "http://127.0.0.1:" + server.getAddress().getPort();
+                    }
+                };
                 client.init();
-                client.clipEndpoint = "http://127.0.0.1:" + server.getAddress().getPort();
 
                 try {
                     client.sendImage("QUJD");
@@ -371,6 +391,31 @@ public class CasClientTest extends UnitWebappTestCase {
             }
         } finally {
             server.stop(0);
+        }
+    }
+
+    @Test
+    public void test_followsSystemPropertyChangedAfterInit() {
+        final String[] endpoint = { "http://clip1.example.com:51000" };
+        ComponentUtil.setFessConfig(new FessConfig.SimpleImpl() {
+            @Override
+            public String getSystemProperty(final String key, final String defaultValue) {
+                if (MultiModalConstants.CLIP_API_URL.equals(key)) {
+                    return endpoint[0];
+                }
+                return defaultValue;
+            }
+        });
+        try {
+            final CasClient client = new CasClient();
+            client.init();
+            assertEquals("http://clip1.example.com:51000", client.getClipEndpoint());
+
+            // A change of system.properties is seen without re-initializing the client.
+            endpoint[0] = "http://clip2.example.com:51000";
+            assertEquals("http://clip2.example.com:51000", client.getClipEndpoint());
+        } finally {
+            ComponentUtil.setFessConfig(null);
         }
     }
 
@@ -392,7 +437,7 @@ public class CasClientTest extends UnitWebappTestCase {
             final CasClient client = new CasClient();
             client.init();
             assertEquals("http://clip.example.com:51000", client.getClipEndpoint());
-            assertEquals(336, client.imageWidth);
+            assertEquals(336, client.getImageWidth());
         } finally {
             ComponentUtil.setFessConfig(null);
         }
@@ -412,11 +457,11 @@ public class CasClientTest extends UnitWebappTestCase {
             final CasClient client = new CasClient();
             client.init();
             assertEquals("http://localhost:51000", client.getClipEndpoint());
-            assertEquals(224, client.imageWidth);
-            assertEquals(224, client.imageHeight);
-            assertEquals(3000, client.maxImageWidth);
-            assertEquals(2000, client.maxImageHeight);
-            assertEquals("png", client.imageFormat);
+            assertEquals(224, client.getImageWidth());
+            assertEquals(224, client.getImageHeight());
+            assertEquals(3000, client.getMaxImageWidth());
+            assertEquals(2000, client.getMaxImageHeight());
+            assertEquals("png", client.getImageFormat());
         } finally {
             ComponentUtil.setFessConfig(null);
         }
