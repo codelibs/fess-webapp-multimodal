@@ -70,42 +70,61 @@ public class CasClient {
         }
     };
 
-    /** Target width for resized images sent to CLIP server. */
-    protected int imageWidth;
-
-    /** Target height for resized images sent to CLIP server. */
-    protected int imageHeight;
-
-    /** Maximum allowed width for input images before rejection. */
-    protected int maxImageWidth;
-
-    /** Maximum allowed height for input images before rejection. */
-    protected int maxImageHeight;
-
-    /** Format for encoding images (e.g., png, jpg). */
-    protected String imageFormat;
-
-    /** CLIP server endpoint URL. */
-    protected String clipEndpoint;
-
     /**
-     * Initializes the CAS client with configuration parameters from system properties.
-     * Sets up image dimensions, format, and CLIP server endpoint.
+     * Logs the configuration read from system properties. The settings themselves are read on each
+     * use, so a change of system.properties takes effect without a restart.
      */
     @PostConstruct
     public void init() {
-        final FessConfig fessConfig = ComponentUtil.getFessConfig();
-        imageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_WIDTH, 224);
-        imageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_HEIGHT, 224);
-        maxImageWidth = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_WIDTH, 3000);
-        maxImageHeight = getIntProperty(fessConfig, MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT, 2000);
-        imageFormat = fessConfig.getSystemProperty(MultiModalConstants.CLIP_IMAGE_FORMAT, "png");
-        clipEndpoint = fessConfig.getSystemProperty(MultiModalConstants.CLIP_API_URL, MultiModalConstants.DEFAULT_CLIP_API_URL);
-
         if (logger.isDebugEnabled()) {
-            logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", imageWidth, imageHeight, maxImageWidth, maxImageHeight,
-                    imageFormat, clipEndpoint);
+            logger.debug("image: {}x{}, max: {}x{}, format: {}, endpoint: {}", getImageWidth(), getImageHeight(), getMaxImageWidth(),
+                    getMaxImageHeight(), getImageFormat(), getClipEndpoint());
         }
+    }
+
+    /**
+     * Returns the target width for resized images sent to the CLIP server.
+     *
+     * @return the width
+     */
+    protected int getImageWidth() {
+        return getIntProperty(ComponentUtil.getFessConfig(), MultiModalConstants.CLIP_IMAGE_WIDTH, 224);
+    }
+
+    /**
+     * Returns the target height for resized images sent to the CLIP server.
+     *
+     * @return the height
+     */
+    protected int getImageHeight() {
+        return getIntProperty(ComponentUtil.getFessConfig(), MultiModalConstants.CLIP_IMAGE_HEIGHT, 224);
+    }
+
+    /**
+     * Returns the maximum allowed width for input images before rejection.
+     *
+     * @return the maximum width
+     */
+    protected int getMaxImageWidth() {
+        return getIntProperty(ComponentUtil.getFessConfig(), MultiModalConstants.CLIP_IMAGE_MAX_WIDTH, 3000);
+    }
+
+    /**
+     * Returns the maximum allowed height for input images before rejection.
+     *
+     * @return the maximum height
+     */
+    protected int getMaxImageHeight() {
+        return getIntProperty(ComponentUtil.getFessConfig(), MultiModalConstants.CLIP_IMAGE_MAX_HEIGHT, 2000);
+    }
+
+    /**
+     * Returns the format for encoding images (e.g., png, jpg).
+     *
+     * @return the image format
+     */
+    protected String getImageFormat() {
+        return ComponentUtil.getFessConfig().getSystemProperty(MultiModalConstants.CLIP_IMAGE_FORMAT, "png");
     }
 
     /**
@@ -135,7 +154,7 @@ public class CasClient {
      * @return the base URL
      */
     public String getClipEndpoint() {
-        return clipEndpoint;
+        return ComponentUtil.getFessConfig().getSystemProperty(MultiModalConstants.CLIP_API_URL, MultiModalConstants.DEFAULT_CLIP_API_URL);
     }
 
     /**
@@ -162,7 +181,7 @@ public class CasClient {
             logger.debug("request body length: {}", body.length());
         }
         try (CurlResponse response =
-                Curl.post(clipEndpoint + CasProtocol.POST_PATH).header("Content-Type", "application/json").body(body).execute()) {
+                Curl.post(getClipEndpoint() + CasProtocol.POST_PATH).header("Content-Type", "application/json").body(body).execute()) {
             // curl4j does not throw on a non-2xx response, so the status has to be checked
             // explicitly -- otherwise an error page is parsed as an empty embedding and the
             // document is indexed silently vectorless.
@@ -205,10 +224,12 @@ public class CasClient {
                     final ImageReadParam param = reader.getDefaultReadParam();
                     final int width = reader.getWidth(0);
                     final int height = reader.getHeight(0);
-                    if (width <= 0 || height <= 0 || width > maxImageWidth || height > maxImageHeight) {
+                    if (width <= 0 || height <= 0 || width > getMaxImageWidth() || height > getMaxImageHeight()) {
                         throw new CasAccessException("Invalid image size: " + width + "x" + height);
                     }
 
+                    final int imageWidth = getImageWidth();
+                    final int imageHeight = getImageHeight();
                     final float aspectRatio = (float) width / height;
                     int newWidth = imageWidth;
                     int newHeight = imageHeight;
@@ -230,7 +251,7 @@ public class CasClient {
                     clipImage.getGraphics()
                             .drawImage(image.getScaledInstance(newWidth, newHeight, Image.SCALE_AREA_AVERAGING), x, y, newWidth, newHeight,
                                     null);
-                    ImageIO.write(clipImage, imageFormat, out);
+                    ImageIO.write(clipImage, getImageFormat(), out);
                     image.flush();
                     return Base64.getEncoder().encodeToString(out.toByteArray());
                 } finally {
