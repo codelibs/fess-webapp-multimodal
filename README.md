@@ -6,6 +6,8 @@
 
 A multimodal search plugin for [Fess](https://fess.codelibs.org/) that lets you find images with plain-language, natural-language queries. It adds a CLIP (Contrastive Language-Image Pre-training) embedding provider and an image ingestion path; everything else -- the vector field, the mapping, the KNN query, the searcher plumbing -- is Fess 15.8 core's own content-chunk-vector infrastructure.
 
+> **Upgrading from an earlier version?** See [UPGRADING.md](UPGRADING.md).
+
 ## Architecture
 
 Starting with Fess 15.8, content-chunk embedding (vector field, mapping, KNN query assembly, the semantic searcher) moved into Fess core itself. This plugin no longer owns any of that. It supplies exactly two things that core does not: a CLIP embedding provider, and an image ingestion path.
@@ -121,7 +123,7 @@ content_chunker.search.min_score=0.12
 - `content_chunker.embedding.name=clip` -- tells core's `EmbeddingClientManager` to resolve the `clipEmbeddingClient` component (`content_chunker.embedding.name` value + `EmbeddingClient`).
 - `content_chunker.search.enabled=true` -- **this one is startup-only.** It is read once, in `SemanticChunkSearcher`'s (here, `ClipChunkSearcher`'s) `@PostConstruct`, to decide whether to register with the rank fusion processor at all. Flipping it after Fess has started has no effect until Fess restarts.
 
-**`content_chunker.search.min_score` is a cosine similarity (0..1), not the raw engine score.** Core converts your configured cosine cutoff to whatever scale the active query mode actually uses -- `(1 + cosine) / 2` for the common `lucene` + `cosinesimil` approximate-KNN combination, or `cosine + 1.0` for the exact (script-score) fallback mode. If you are migrating a threshold you tuned under the old `fess.multimodal.min_score` (which *was* the raw engine score), convert it: an old engine-score threshold of `0.56` corresponds to a new cosine threshold of `0.12` (`0.56 = (1 + 0.12) / 2`).
+**`content_chunker.search.min_score` is a cosine similarity (0..1), not the raw engine score.** Core converts your configured cosine cutoff to whatever scale the active query mode actually uses -- `(1 + cosine) / 2` for the common `lucene` + `cosinesimil` approximate-KNN combination, or `cosine + 1.0` for the exact (script-score) fallback mode. To convert a threshold tuned under the old `fess.multimodal.min_score` key, see [UPGRADING.md](UPGRADING.md).
 
 ### 3. Apply configuration and crawl
 
@@ -129,28 +131,6 @@ content_chunker.search.min_score=0.12
 2. **Maintenance** -> recreate/reindex the search index so it picks up core's `content_chunk_vector` mapping and, if applicable, the `index.knn` index setting.
 3. Restart Fess if you changed `content_chunker.search.enabled`.
 4. Crawl a directory or site containing images (`image/gif`, `image/jpeg`, `image/png`). Text documents are crawled and indexed as usual; only images go through this plugin's embedding path.
-
-## Migrating from older `fess.multimodal.*` / `clip.*` keys
-
-Every system property this plugin used before Fess 15.8 core-embedding support has been replaced or removed. There is no compatibility shim -- update `system.properties` (or your `-Dfess.system.*` arguments) to the new keys.
-
-| Old key | Status | New key / replacement |
-|---|---|---|
-| `fess.multimodal.content.field` | **Removed.** The vector field is now Fess core's fixed `content_chunk_vector` (nested, subfield `vector`); there is no plugin-side field name to configure. | n/a |
-| `fess.multimodal.content.dimension` | Replaced | `content_chunker.embedding.dimension` |
-| `fess.multimodal.content.method` / `.content.engine` / `.content.space_type` | Replaced | `content_chunker.search.knn.*` (owned by Fess core, not this plugin) |
-| `fess.multimodal.min_score` | Replaced, **unit changed** | `content_chunker.search.min_score` -- now a cosine similarity (0..1), not the raw engine score. See the conversion above (old `0.56` -> new `0.12`). |
-| `clip.server.endpoint` | Replaced | `content_chunker.embedding.clip.api.url` |
-| `clip.image.width` / `.height` / `.max_width` / `.max_height` / `.format` | Replaced | `content_chunker.embedding.clip.image.width` / `.height` / `.max_width` / `.max_height` / `.format` |
-
-Classes that used to implement this configuration -- `MultiModalSearchHelper` (vector field mapping/query rewriting) and `KNNQueryBuilder` (KNN query assembly) -- no longer exist. Their responsibilities now live entirely in Fess core.
-
-### Migrating from Fess 15.7
-
-If you were running this plugin's 15.7-era code:
-
-- The vector field name changes from `content_vector` (or whatever you had configured via `fess.multimodal.content.field`) to core's fixed `content_chunk_vector`. A reindex/recrawl is required either way (see below).
-- The reindex workaround previously needed to preserve vectors across a mapping change is **no longer necessary** -- core owns the mapping now, so a normal index recreation carries it correctly.
 
 ## The Content Chunk Vector Indexer job
 
