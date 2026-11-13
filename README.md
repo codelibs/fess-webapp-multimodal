@@ -204,7 +204,7 @@ DI wiring (LastaDi) is under `src/main/resources/`:
 - Confirm `content_chunker.enabled=true` and `content_chunker.search.enabled=true`, and that Fess was **restarted** after setting the latter.
 - Confirm `content_chunker.embedding.dimension` matches your CLIP model's actual output size.
 - Check that the CLIP server is reachable: `curl http://localhost:51000/health` (or whatever `content_chunker.embedding.clip.api.url` points to).
-- Some queries intentionally skip the vector branch -- `sort=` (including a default sort configured in the admin console, which is appended to every query), `allintitle:`/`allinurl:`, a quoted phrase, a wildcard or boost on the query text, an excluded term, an OR-ed condition, and a facet click with an empty search box. "Facets, labels, and sort" above lists them all with the reason for each. Facets, labels and field conditions such as `filetype:` or `timestamp:[..]` alongside some query text do **not** skip it.
+- Some queries intentionally skip the vector branch -- `sort=` (including a default sort configured in the admin console, which is appended to every query), `allintitle:`/`allinurl:`, a quoted phrase, a boost on the query text, an excluded term, an OR-ed condition, and a facet click with an empty search box. "Facets, labels, and sort" above lists them all with the reason for each. Facets, labels and field conditions such as `filetype:` or `timestamp:[..]` alongside some query text do **not** skip it, and neither do a wildcard, prefix or fuzzy word (`sunse*`, `cat?`, `cat~`), which is embedded as typed.
 
 **CLIP service connection failed**
 ```bash
